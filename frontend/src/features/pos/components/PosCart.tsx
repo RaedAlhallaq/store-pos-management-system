@@ -1,0 +1,256 @@
+import React from 'react';
+import {
+  Trash2,
+  Plus,
+  Minus,
+  ShoppingCart,
+  User as UserIcon,
+  UserPlus,
+  PauseCircle,
+  Percent,
+  Receipt,
+} from 'lucide-react';
+import { Button } from '../../../components/ui/Button';
+import type { CartItem } from '../types/posTypes';
+import type { Customer } from '../../customers/types/customerTypes';
+
+interface PosCartProps {
+  items: CartItem[];
+  customer: Customer | null;
+  onSelectCustomerClick: () => void;
+  onQuickCustomerAdd: () => void;
+  onUpdateQuantity: (productId: number, newQty: number) => void;
+  onRemoveItem: (productId: number) => void;
+  onClearCart: () => void;
+  onHoldOrder: () => void;
+  heldOrdersCount: number;
+  onOpenHeldOrders: () => void;
+  overallDiscount: number;
+  onSetOverallDiscount: (discount: number) => void;
+  onOpenPaymentModal: () => void;
+}
+
+export const PosCart: React.FC<PosCartProps> = ({
+  items,
+  customer,
+  onSelectCustomerClick,
+  onQuickCustomerAdd,
+  onUpdateQuantity,
+  onRemoveItem,
+  onClearCart,
+  onHoldOrder,
+  heldOrdersCount,
+  onOpenHeldOrders,
+  overallDiscount,
+  onSetOverallDiscount,
+  onOpenPaymentModal,
+}) => {
+  const subtotalBeforeTax = items.reduce((sum, item) => sum + (item.unit_price * item.quantity - item.discount_amount), 0);
+  const totalTax = items.reduce((sum, item) => sum + item.tax_amount, 0);
+  const totalItemsCount = items.reduce((sum, item) => sum + item.quantity, 0);
+  const grandTotal = Math.max(0, subtotalBeforeTax + totalTax - overallDiscount);
+
+  return (
+    <div className="flex flex-col h-full bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-xl">
+      {/* Top Customer Header */}
+      <div className="p-3.5 bg-slate-950/80 border-b border-slate-800 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 overflow-hidden flex-1">
+          <button
+            type="button"
+            onClick={onSelectCustomerClick}
+            className="flex items-center gap-2 p-1.5 px-2.5 rounded-xl bg-slate-850 hover:bg-slate-800 border border-slate-700/80 text-xs font-bold text-slate-200 transition-colors truncate"
+          >
+            <UserIcon className="w-3.5 h-3.5 text-brand-400 shrink-0" />
+            <span className="truncate">
+              {customer ? customer.name : 'عميل نقدي عام (تغيير...)'}
+            </span>
+          </button>
+        </div>
+
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={onQuickCustomerAdd}
+            title="إضافة عميل جديد سريع"
+            className="p-1.5 rounded-xl text-brand-400 bg-brand-500/10 hover:bg-brand-500/20 border border-brand-500/30 transition-colors"
+          >
+            <UserPlus className="w-4 h-4" />
+          </button>
+
+          {heldOrdersCount > 0 && (
+            <button
+              type="button"
+              onClick={onOpenHeldOrders}
+              className="px-2.5 py-1 rounded-xl text-xs font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30 hover:bg-amber-500/20 transition-colors flex items-center gap-1"
+            >
+              <PauseCircle className="w-3.5 h-3.5" />
+              <span>معلقة ({heldOrdersCount})</span>
+            </button>
+          )}
+
+          {items.length > 0 && (
+            <button
+              type="button"
+              onClick={onClearCart}
+              title="تفريغ السلة"
+              className="p-1.5 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Cart Items List */}
+      <div className="flex-1 overflow-y-auto p-3 space-y-2">
+        {items.length === 0 ? (
+          <div className="h-full flex flex-col items-center justify-center text-center p-6 text-slate-500 select-none">
+            <div className="w-16 h-16 rounded-3xl bg-slate-950 flex items-center justify-center mb-3 border border-slate-800 text-slate-600">
+              <ShoppingCart className="w-8 h-8" />
+            </div>
+            <p className="text-sm font-bold text-slate-300">السلة فارغة حالياً</p>
+            <p className="text-xs text-slate-500 mt-1 max-w-[200px]">
+              امسح الباركود أو انقر على الأصناف من الكتالوج لإضافتها للفاتورة
+            </p>
+          </div>
+        ) : (
+          items.map((item) => (
+            <div
+              key={item.product.id}
+              className="p-3 rounded-2xl bg-slate-950/60 border border-slate-800/80 hover:border-slate-700 transition-colors space-y-2"
+            >
+              {/* Item Title & Delete */}
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <h4 className="font-bold text-xs text-slate-100 line-clamp-1">
+                    {item.product.name}
+                  </h4>
+                  <span className="text-[10px] text-slate-400 font-mono">
+                    {Number(item.unit_price).toFixed(2)} ₪ / {item.product.unit?.short_name || 'حبة'}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold font-mono text-brand-300">
+                    {item.subtotal.toFixed(2)} ₪
+                  </span>
+                  <button
+                    onClick={() => onRemoveItem(item.product.id)}
+                    className="text-slate-500 hover:text-rose-400 p-0.5 rounded transition-colors"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Quantity Controls */}
+              <div className="flex items-center justify-between pt-1 border-t border-slate-800/40">
+                <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-800 rounded-xl p-1">
+                  <button
+                    type="button"
+                    onClick={() => onUpdateQuantity(item.product.id, item.quantity - 1)}
+                    className="w-6 h-6 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white flex items-center justify-center transition-colors"
+                  >
+                    <Minus className="w-3 h-3" />
+                  </button>
+                  <input
+                    type="number"
+                    step={item.product.unit?.allow_decimal ? '0.1' : '1'}
+                    min="0.001"
+                    value={item.quantity}
+                    onChange={(e) => onUpdateQuantity(item.product.id, parseFloat(e.target.value) || 0)}
+                    className="w-12 text-center bg-transparent font-mono font-bold text-xs text-slate-100 focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => onUpdateQuantity(item.product.id, item.quantity + 1)}
+                    className="w-6 h-6 rounded-lg bg-brand-500 text-slate-950 font-bold hover:bg-brand-400 flex items-center justify-center transition-colors"
+                  >
+                    <Plus className="w-3 h-3" />
+                  </button>
+                </div>
+
+                <span className="text-[10px] text-slate-500">
+                  شامل ضريبة {item.tax_percent}% ({item.tax_amount.toFixed(2)} ₪)
+                </span>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Cart Summary & Checkout Footer */}
+      <div className="p-4 bg-slate-950 border-t border-slate-800 space-y-3">
+        {/* Subtotals breakdown */}
+        <div className="space-y-1.5 text-xs">
+          <div className="flex items-center justify-between text-slate-400">
+            <span>عدد الأصناف ({totalItemsCount}):</span>
+            <span className="font-mono text-slate-200 font-semibold">{subtotalBeforeTax.toFixed(2)} ₪</span>
+          </div>
+
+          <div className="flex items-center justify-between text-slate-400">
+            <span>ضريبة القيمة المضافة (15%):</span>
+            <span className="font-mono text-slate-200 font-semibold">{totalTax.toFixed(2)} ₪</span>
+          </div>
+
+          {/* Discount modifier input */}
+          <div className="flex items-center justify-between text-slate-400 pt-1">
+            <span className="flex items-center gap-1">
+              <Percent className="w-3 h-3 text-amber-400" />
+              <span>خصم إضافي:</span>
+            </span>
+            <div className="flex items-center gap-1">
+              <input
+                type="number"
+                min="0"
+                step="0.5"
+                placeholder="0.00"
+                value={overallDiscount || ''}
+                onChange={(e) => onSetOverallDiscount(parseFloat(e.target.value) || 0)}
+                className="w-16 bg-slate-900 border border-slate-800 rounded-lg px-2 py-0.5 text-xs text-left font-mono text-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-500"
+              />
+              <span className="text-[10px] text-slate-500">₪</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Grand Total Bar */}
+        <div className="p-3.5 rounded-2xl bg-gradient-to-r from-brand-600/20 via-brand-500/10 to-transparent border border-brand-500/30 flex items-center justify-between">
+          <div>
+            <span className="text-[11px] text-brand-300 font-bold block">المبلغ الإجمالي المستحق</span>
+            <span className="text-[10px] text-slate-400">شامل ضريبة القيمة المضافة</span>
+          </div>
+          <div className="text-left font-mono">
+            <span className="text-2xl font-black text-slate-100">{grandTotal.toFixed(2)}</span>
+            <span className="text-xs text-brand-400 font-bold mr-1"> ₪</span>
+          </div>
+        </div>
+
+        {/* Action buttons (Hold + Checkout) */}
+        <div className="grid grid-cols-3 gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={items.length === 0}
+            onClick={onHoldOrder}
+            className="col-span-1 text-slate-300 border-slate-700 hover:bg-slate-800"
+            title="تعليق الفاتورة الحالية"
+          >
+            <PauseCircle className="w-4 h-4" />
+          </Button>
+
+          <Button
+            type="button"
+            disabled={items.length === 0}
+            onClick={onOpenPaymentModal}
+            size="lg"
+            className="col-span-2 bg-gradient-to-r from-brand-500 to-brand-400 hover:from-brand-600 hover:to-brand-500 text-slate-950 font-black shadow-lg shadow-brand-500/25 flex items-center justify-center gap-2"
+          >
+            <Receipt className="w-5 h-5" />
+            <span>إتمام الدفع (F2)</span>
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+};

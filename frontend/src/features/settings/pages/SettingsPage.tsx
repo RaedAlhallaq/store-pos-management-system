@@ -1,0 +1,265 @@
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { settingsApi } from '../api/settingsApi';
+import type { StoreSettings } from '../types/settingsTypes';
+import { Store, Phone, MapPin, Coins, Download, Upload, CheckCircle2, AlertTriangle, Save } from 'lucide-react';
+
+export default function SettingsPage() {
+  const [form, setForm] = useState<Partial<StoreSettings>>({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [restoring, setRestoring] = useState(false);
+  const [restoreMsg, setRestoreMsg] = useState('');
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const loadSettings = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await settingsApi.getSettings();
+      setForm(data);
+    } catch (e) {
+      console.error('Failed to load settings', e);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { loadSettings(); }, [loadSettings]);
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    setSaved(false);
+    try {
+      const updated = await settingsApi.updateSettings(form);
+      setForm(updated);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch (e) {
+      console.error('Failed to save', e);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      settingsApi.exportBackup();
+    } finally {
+      setTimeout(() => setExporting(false), 2000);
+    }
+  };
+
+  const handleRestore = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!confirm('⚠️ هل أنت متأكد من استعادة النسخة الاحتياطية؟ سيتم الكتابة فوق البيانات الحالية.')) {
+      return;
+    }
+    setRestoring(true);
+    setRestoreMsg('');
+    try {
+      const result = await settingsApi.restoreBackup(file);
+      setRestoreMsg(result.message);
+    } catch (e: any) {
+      setRestoreMsg(e?.response?.data?.message || 'حدث خطأ أثناء الاستعادة');
+    } finally {
+      setRestoring(false);
+      if (fileRef.current) fileRef.current.value = '';
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64" dir="rtl">
+        <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-6 max-w-4xl mx-auto space-y-6" dir="rtl">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold text-white">إعدادات المحل</h1>
+        <p className="text-gray-400 text-sm mt-1">بيانات المحل الأساسية والنسخ الاحتياطي</p>
+      </div>
+
+      <form onSubmit={handleSave} className="space-y-6">
+        {/* Store Info */}
+        <div className="bg-gray-900 border border-gray-700 rounded-2xl overflow-hidden">
+          <div className="p-5 border-b border-gray-700 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-brand-500/20 flex items-center justify-center">
+              <Store className="w-4 h-4 text-brand-400" />
+            </div>
+            <h2 className="text-base font-bold text-white">البيانات الأساسية</h2>
+          </div>
+          <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Store Name */}
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-medium text-gray-400 mb-1.5 flex items-center gap-1.5">
+                <Store className="w-3.5 h-3.5 text-brand-400" />
+                <span>اسم المحل</span>
+              </label>
+              <input
+                type="text"
+                value={form.store_name ?? ''}
+                onChange={(e) => setForm((f) => ({ ...f, store_name: e.target.value }))}
+                placeholder="الأصيل للمنظفات"
+                className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-brand-500 transition-colors"
+              />
+            </div>
+
+            {/* Phone */}
+            <div>
+              <label className="block text-xs font-medium text-gray-400 mb-1.5 flex items-center gap-1.5">
+                <Phone className="w-3.5 h-3.5 text-sky-400" />
+                <span>رقم الهاتف</span>
+              </label>
+              <input
+                type="text"
+                value={form.phone ?? ''}
+                onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+                placeholder="0551122334"
+                className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-brand-500 transition-colors"
+              />
+            </div>
+
+            {/* Currency Symbol */}
+            <div>
+              <label className="block text-xs font-medium text-gray-400 mb-1.5 flex items-center gap-1.5">
+                <Coins className="w-3.5 h-3.5 text-amber-400" />
+                <span>رمز العملة</span>
+              </label>
+              <input
+                type="text"
+                value={form.currency_symbol ?? '₪'}
+                onChange={(e) => setForm((f) => ({ ...f, currency_symbol: e.target.value }))}
+                placeholder="₪"
+                className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-brand-500 transition-colors"
+              />
+            </div>
+
+            {/* Address */}
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-medium text-gray-400 mb-1.5 flex items-center gap-1.5">
+                <MapPin className="w-3.5 h-3.5 text-emerald-400" />
+                <span>عنوان المحل</span>
+              </label>
+              <input
+                type="text"
+                value={form.address ?? ''}
+                onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
+                placeholder="شارع القدس الرئيسي"
+                className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-brand-500 transition-colors"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Save Button */}
+        <div className="flex items-center gap-3">
+          <button
+            type="submit"
+            disabled={saving}
+            className="px-8 py-3 rounded-xl bg-brand-500 hover:bg-brand-600 text-slate-950 font-bold transition-colors disabled:opacity-50 flex items-center gap-2"
+          >
+            {saving ? (
+              <span className="w-4 h-4 border-2 border-slate-950/30 border-t-slate-950 rounded-full animate-spin" />
+            ) : (
+              <Save className="w-4 h-4" />
+            )}
+            حفظ الإعدادات
+          </button>
+          {saved && (
+            <span className="text-emerald-400 text-sm font-medium flex items-center gap-1">
+              <CheckCircle2 className="w-4 h-4" />
+              تم حفظ البيانات بنجاح
+            </span>
+          )}
+        </div>
+      </form>
+
+      {/* Database Backup & Restore */}
+      <div className="bg-gray-900 border border-gray-700 rounded-2xl overflow-hidden">
+        <div className="p-5 border-b border-gray-700 flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center">
+            <Coins className="w-4 h-4 text-amber-400" />
+          </div>
+          <h2 className="text-base font-bold text-white">النسخ الاحتياطي واستعادة البيانات</h2>
+        </div>
+        <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-6">
+          {/* Export */}
+          <div className="bg-gray-800 rounded-xl p-5 border border-gray-700">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center">
+                <Download className="w-5 h-5 text-emerald-400" />
+              </div>
+              <div>
+                <p className="text-white font-bold text-sm">تصدير نسخة احتياطية</p>
+                <p className="text-gray-400 text-xs">تنزيل ملف يحتوي على كامل بيانات وحسابات المحل</p>
+              </div>
+            </div>
+            <button
+              onClick={handleExport}
+              disabled={exporting}
+              className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {exporting ? (
+                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <>
+                  <Download className="w-4 h-4" />
+                  تنزيل النسخة الاحتياطية (.sql)
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* Restore */}
+          <div className="bg-gray-800 rounded-xl p-5 border border-red-900/30">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-xl bg-red-500/20 flex items-center justify-center">
+                <AlertTriangle className="w-5 h-5 text-red-400" />
+              </div>
+              <div>
+                <p className="text-white font-bold text-sm">استعادة نسخة احتياطية</p>
+                <p className="text-red-400 text-xs">⚠️ سيتم الكتابة فوق البيانات الحالية بالملف المرفوع</p>
+              </div>
+            </div>
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".sql"
+              onChange={handleRestore}
+              className="hidden"
+              id="restore-file-input"
+            />
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              disabled={restoring}
+              className="w-full py-3 rounded-xl bg-red-700 hover:bg-red-600 text-white font-bold text-sm transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {restoring ? (
+                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <>
+                  <Upload className="w-4 h-4" />
+                  رفع ملف للاستعادة
+                </>
+              )}
+            </button>
+            {restoreMsg && (
+              <p className={`mt-3 text-sm text-center ${restoreMsg.includes('نجاح') ? 'text-emerald-400' : 'text-red-400'}`}>
+                {restoreMsg}
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

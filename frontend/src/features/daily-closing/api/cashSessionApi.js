@@ -108,7 +108,7 @@ export const cashSessionApi = {
     const sessionExpenses = allExpensesForSession.filter((e) => {
       return e.created_at && e.created_at >= (session.opened_at || '') && (!session.closed_at || e.created_at <= session.closed_at);
     });
-    const totalExpenses = sessionExpenses.reduce((sum, e) => sum + money(e.amount), 0);
+    const totalExpenses = sessionExpenses.filter((e) => e.payment_method === 'cash').reduce((sum, e) => sum + money(e.amount), 0);
 
     const movements = session.movements || [];
     const totalCashIn = movements.filter((m) => m.type === 'in').reduce((sum, m) => sum + money(m.amount), 0);
@@ -171,10 +171,11 @@ export const cashSessionApi = {
     const expenses = allExpenses.filter((e) => {
       return e.created_at && e.created_at >= (session.opened_at || '') && (!session.closed_at || e.created_at <= session.closed_at);
     });
-    const totalExpenses = expenses.reduce((sum, e) => sum + money(e.amount), 0);
+    const totalExpensesAll = expenses.reduce((sum, e) => sum + money(e.amount), 0);
+    const totalExpensesCash = expenses.filter((e) => e.payment_method === 'cash').reduce((sum, e) => sum + money(e.amount), 0);
 
     const expectedCash = money(
-      money(session.opening_cash) + totalSalesCash + totalCashIn - totalCashOut - totalExpenses
+      money(session.opening_cash) + totalSalesCash + totalCashIn - totalCashOut - totalExpensesCash
     );
     const actualCash = session.closing_cash_actual != null ? money(session.closing_cash_actual) : expectedCash;
     const difference = money(actualCash - expectedCash);
@@ -202,7 +203,7 @@ export const cashSessionApi = {
       opening_cash: money(session.opening_cash),
       total_cash_in: money(totalCashIn),
       total_cash_out: money(totalCashOut),
-      total_expenses: money(totalExpenses),
+      total_expenses: money(totalExpensesAll),
       closing_cash_expected: money(expectedCash),
       closing_cash_actual: actualCash,
       difference: money(difference),

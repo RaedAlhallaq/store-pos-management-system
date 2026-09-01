@@ -71,10 +71,10 @@ export function DashboardPage() {
   const today = new Date().toISOString().slice(0, 10);
   const [isLoading, setIsLoading] = useState(true);
   const [dashboardData, setDashboardData] = useState({});
-  const [storeName, setStoreName] = useState('نظام إدارة المبيعات');
+  const [storeName, setStoreName] = useState('نظام إدارة المحل');
 
   useEffect(() => {
-    settingsApi.getSettings().then((s) => setStoreName(s.store_name || 'نظام إدارة المبيعات')).catch(() => {});
+    settingsApi.getSettings().then((s) => setStoreName(s.store_name || 'نظام إدارة المحل')).catch(() => {});
   }, []);
 
   useEffect(() => {

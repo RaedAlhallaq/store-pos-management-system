@@ -4,11 +4,11 @@ import { LoginForm } from '../components/LoginForm';
 import { settingsApi } from '../../settings/api/settingsApi';
 
 export function LoginPage() {
-  const [storeName, setStoreName] = useState('نظام إدارة المبيعات');
+  const [storeName, setStoreName] = useState('نظام إدارة المحل');
 
   useEffect(() => {
     settingsApi.getSettings().then((s) => {
-      setStoreName(s.store_name || 'نظام إدارة المبيعات');
+      setStoreName(s.store_name || 'نظام إدارة المحل');
     }).catch(() => {});
   }, []);
 

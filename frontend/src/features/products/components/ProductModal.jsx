@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useEffect, useMemo } from 'react';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Modal } from '../../../components/ui/Modal';
@@ -45,8 +45,8 @@ export function ProductModal({
     register,
     handleSubmit,
     setValue,
-    watch,
     reset,
+    control,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(productSchema),
@@ -66,10 +66,12 @@ export function ProductModal({
     },
   });
 
-  const costPrice = Number(watch('cost_price') || 0);
-  const sellingPrice = Number(watch('selling_price') || 0);
-  const profitMargin = sellingPrice - costPrice;
-  const profitPercent = costPrice > 0 ? ((profitMargin / costPrice) * 100).toFixed(1) : '0';
+  const watchedCost = useWatch({ control, name: 'cost_price' });
+  const watchedSell = useWatch({ control, name: 'selling_price' });
+  const costPrice = Number(watchedCost || 0);
+  const sellingPrice = Number(watchedSell || 0);
+  const profitMargin = useMemo(() => sellingPrice - costPrice, [sellingPrice, costPrice]);
+  const profitPercent = useMemo(() => costPrice > 0 ? ((profitMargin / costPrice) * 100).toFixed(1) : '0', [profitMargin, costPrice]);
 
   useEffect(() => {
     if (product) {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { Modal } from '../../../components/ui/Modal';
 import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
@@ -13,14 +13,12 @@ export function StockAdjustmentModal({ isOpen, onClose, product, onAdjust }) {
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    if (isOpen) {
-      setType('adjustment');
-      setDirection('add');
-      setAmount('');
-      setNotes('');
-    }
-  }, [isOpen]);
+  const resetForm = useCallback(() => {
+    setType('adjustment');
+    setDirection('add');
+    setAmount('');
+    setNotes('');
+  }, []);
 
   if (!product) return null;
 
@@ -49,6 +47,7 @@ export function StockAdjustmentModal({ isOpen, onClose, product, onAdjust }) {
         notes: notes || undefined,
       });
       toast.success('تمت تسوية رصيد المخزون بنجاح');
+      resetForm();
       onClose();
     } catch (error) {
       toast.error(error?.response?.data?.message || error?.message || 'فشلت عملية التسوية');

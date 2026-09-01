@@ -7,15 +7,11 @@ export const reportsApi = {
     const allSales = (await db.getAll('sales')).filter(
       (s) => s.invoice_status !== 'void' && inDateRange(s.created_at, filters.date_from, filters.date_to)
     );
-    const allPurchases = (await db.getAll('purchases')).filter(
-      (p) => p.purchase_status !== 'void' && inDateRange(p.created_at, filters.date_from, filters.date_to)
-    );
     const allExpenses = (await db.getAll('expenses')).filter(
       (e) => inDateRange(e.created_at, filters.date_from, filters.date_to)
     );
 
     const totalRevenue = allSales.reduce((sum, s) => sum + money(s.subtotal), 0);
-    const totalTax = allSales.reduce((sum, s) => sum + money(s.tax_amount), 0);
     const totalDiscounts = allSales.reduce((sum, s) => sum + money(s.discount_amount), 0);
     const totalCOGS = allSales.reduce((sum, s) => {
       return sum + (s.items || []).reduce((itemSum, item) => itemSum + money(item.unit_cost) * qty(item.quantity), 0);
@@ -54,11 +50,12 @@ export const reportsApi = {
     const totalDiscounts = allSales.reduce((sum, s) => sum + money(s.discount_amount), 0);
     const taxableAmount = money(totalSales - totalTax);
 
-    let cash = 0, card = 0, credit = 0;
+    let cash = 0, card = 0, credit = 0, split = 0;
     for (const sale of allSales) {
       const method = sale.payment_method || 'cash';
       if (method === 'cash') cash += money(sale.grand_total);
       else if (method === 'card') card += money(sale.grand_total);
+      else if (method === 'multiple' || method === 'split') split += money(sale.grand_total);
       else credit += money(sale.grand_total);
     }
 
@@ -67,7 +64,7 @@ export const reportsApi = {
       taxable_amount: money(taxableAmount),
       tax_amount: money(totalTax),
       discount_amount: money(totalDiscounts),
-      payments_breakdown: { cash: money(cash), card: money(card), credit: money(credit) },
+      payments_breakdown: { cash: money(cash), card: money(card), credit: money(credit), split: money(split) },
     };
   },
 

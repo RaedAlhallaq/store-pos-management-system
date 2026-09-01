@@ -1,6 +1,17 @@
+import { useEffect, useState } from 'react';
+import { settingsApi } from '../../settings/api/settingsApi';
+
 const fmt = (n) => Number(n).toFixed(2);
 
 export default function ZReportModal({ isOpen, zReport, onClose }) {
+  const [storeName, setStoreName] = useState('الأصيل للمنظفات');
+
+  useEffect(() => {
+    if (isOpen) {
+      settingsApi.getSettings().then((s) => setStoreName(s.store_name || 'الأصيل للمنظفات')).catch(() => {});
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const formatDate = (iso) => { if (!iso) return '—'; return new Date(iso).toLocaleString('ar-SA', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }); };
@@ -15,7 +26,7 @@ export default function ZReportModal({ isOpen, zReport, onClose }) {
           <div className="flex gap-2"><button onClick={handlePrint} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold">طباعة</button><button onClick={onClose} className="text-gray-400 hover:text-white px-2">✕</button></div>
         </div>
         <div className="overflow-y-auto flex-1 p-6 text-gray-900 text-sm leading-relaxed">
-          <div className="text-center border-b-2 border-dashed border-gray-400 pb-3 mb-3"><p className="font-bold text-lg">الأصيل للمنظفات</p><p className="text-xs text-gray-600">تقرير الإغلاق اليومي</p></div>
+          <div className="text-center border-b-2 border-dashed border-gray-400 pb-3 mb-3"><p className="font-bold text-lg">{storeName}</p><p className="text-xs text-gray-600">تقرير الإغلاق اليومي</p></div>
           <div className="space-y-1 border-b border-dashed border-gray-300 pb-3 mb-3">
             <div className="flex justify-between"><span>الكاشير:</span><span className="font-bold">{zReport.cashier_name ?? '—'}</span></div>
             <div className="flex justify-between"><span>الفتح:</span><span>{formatDate(zReport.opened_at)}</span></div>

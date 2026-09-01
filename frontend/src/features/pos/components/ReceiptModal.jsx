@@ -1,10 +1,24 @@
-import { useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { CheckCircle2, Printer, QrCode, Store } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 import { Modal } from '../../../components/ui/Modal';
+import { settingsApi } from '../../settings/api/settingsApi';
 
 export function ReceiptModal({ isOpen, onClose, sale, onNewSale }) {
   const printAreaRef = useRef(null);
+  const [settings, setSettings] = useState({ store_name: 'الأصيل للمنظفات', receipt_footer: 'شكراً لزيارتكم محل الأصيل للمنظفات!' });
+
+  useEffect(() => {
+    if (isOpen) {
+      settingsApi.getSettings().then((s) => {
+        setSettings({
+          store_name: s.store_name || 'الأصيل للمنظفات',
+          receipt_footer: s.receipt_footer || 'شكراً لزيارتكم محل الأصيل للمنظفات!',
+        });
+      }).catch(() => {});
+    }
+  }, [isOpen]);
+
   if (!sale) return null;
 
   // Calculate change for cash payments
@@ -25,7 +39,7 @@ export function ReceiptModal({ isOpen, onClose, sale, onNewSale }) {
           <div className="text-center space-y-1 border-b border-dashed border-slate-300 pb-3">
             <div className="flex items-center justify-center gap-1.5 text-slate-800 font-bold text-sm">
               <Store className="w-4 h-4 text-slate-700" />
-              <span>الأصيل للمنظفات</span>
+              <span>{settings.store_name}</span>
             </div>
             <p className="text-[11px] text-slate-600">فاتورة مبيعات</p>
           </div>
@@ -133,7 +147,7 @@ export function ReceiptModal({ isOpen, onClose, sale, onNewSale }) {
             <div className="p-2 bg-slate-50 border border-slate-200 rounded-xl">
               <QrCode className="w-14 h-14 text-slate-800" />
             </div>
-            <p className="text-[10px] text-slate-500">شكراً لزيارتكم محل الأصيل للمنظفات!</p>
+            <p className="text-[10px] text-slate-500">{settings.receipt_footer}</p>
           </div>
         </div>
 

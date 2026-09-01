@@ -12,7 +12,7 @@ import { PurchasesPage } from '../../features/purchases/pages/PurchasesPage';
 import { ExpensesPage } from '../../features/expenses/pages/ExpensesPage';
 import { DailyClosingPage } from '../../features/daily-closing/pages/DailyClosingPage';
 import { ReportsPage } from '../../features/reports/pages/ReportsPage';
-import SettingsPage from '../../features/settings/pages/SettingsPage';
+import { SettingsPage } from '../../features/settings/pages/SettingsPage';
 import { ProtectedRoute } from './ProtectedRoute';
 
 export const router = createBrowserRouter([

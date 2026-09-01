@@ -87,7 +87,7 @@ export function PosProductGrid({ products, categories, onSelectProduct, onBarcod
       </div>
 
       {/* Category filter + stock toggle */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none select-none">
+      <div className="flex items-center gap-2 overflow-x-auto pb-2 select-none">
         <button
           type="button"
           onClick={() => setSelectedCategory('all')}

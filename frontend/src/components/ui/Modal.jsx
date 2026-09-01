@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useId } from 'react';
 import { X } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
@@ -20,6 +20,8 @@ export function Modal({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
+  const titleId = useId();
+
   if (!isOpen) return null;
 
   const maxWidthClasses = {
@@ -32,7 +34,7 @@ export function Modal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
+    <div className="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby={title ? titleId : undefined}>
       {/* Backdrop */}
       <div
         onClick={onClose}
@@ -50,7 +52,7 @@ export function Modal({
           {/* Header */}
           <div className="flex items-start justify-between border-b border-slate-800 pb-4 mb-4">
             <div>
-              <h3 className="text-lg font-bold text-slate-100">{title}</h3>
+              <h3 id={titleId} className="text-lg font-bold text-slate-100">{title}</h3>
               {subtitle && <p className="text-xs text-slate-400 mt-0.5">{subtitle}</p>}
             </div>
             <button

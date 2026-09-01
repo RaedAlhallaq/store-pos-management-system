@@ -1,5 +1,4 @@
-import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useEffect, useState } from 'react';
 import { productsApi } from '../api/productsApi';
 import { ProductFilterBar } from '../components/ProductFilterBar';
 import { ProductModal } from '../components/ProductModal';
@@ -27,12 +26,10 @@ import {
   Copy,
   Check,
 } from 'lucide-react';
-import type { Product, ProductFilters } from '../types/productTypes';
 import { toast } from 'sonner';
 
-export const ProductsPage: React.FC = () => {
-  const queryClient = useQueryClient();
-  const [filters, setFilters] = useState<ProductFilters>({
+export const ProductsPage = () => {
+  const [filters, setFilters] = useState({
     search: '',
     category_id: 'all',
     stock_status: 'all',
@@ -42,104 +39,107 @@ export const ProductsPage: React.FC = () => {
 
   // Modals state
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [editingProduct, setEditingProduct] = useState(null);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [isUnitModalOpen, setIsUnitModalOpen] = useState(false);
-  const [adjustingProduct, setAdjustingProduct] = useState<Product | null>(null);
-  const [copiedBarcode, setCopiedBarcode] = useState<string | null>(null);
+  const [adjustingProduct, setAdjustingProduct] = useState(null);
+  const [copiedBarcode, setCopiedBarcode] = useState(null);
 
-  // Queries
-  const { data: productsData, isLoading: isProductsLoading } = useQuery({
-    queryKey: ['products', filters],
-    queryFn: () => productsApi.getProducts(filters),
-  });
+  // Data state
+  const [productsData, setProductsData] = useState(null);
+  const [isProductsLoading, setIsProductsLoading] = useState(true);
+  const [categories, setCategories] = useState([]);
+  const [units, setUnits] = useState([]);
+  const [metrics, setMetrics] = useState(null);
+  const [isSavingProduct, setIsSavingProduct] = useState(false);
 
-  const { data: categories = [] } = useQuery({
-    queryKey: ['categories'],
-    queryFn: () => productsApi.getCategories(),
-  });
+  const refreshProducts = useCallback(async () => {
+    setIsProductsLoading(true);
+    try {
+      setProductsData(await productsApi.getProducts(filters));
+    } catch {
+      setProductsData(null);
+    } finally {
+      setIsProductsLoading(false);
+    }
+  }, [filters]);
 
-  const { data: units = [] } = useQuery({
-    queryKey: ['units'],
-    queryFn: () => productsApi.getUnits(),
-  });
+  const refreshCategories = useCallback(async () => {
+    try {
+      setCategories(await productsApi.getCategories());
+    } catch {
+      setCategories([]);
+    }
+  }, []);
 
-  const { data: metrics } = useQuery({
-    queryKey: ['products-metrics'],
-    queryFn: () => productsApi.getMetrics(),
-  });
+  const refreshUnits = useCallback(async () => {
+    try {
+      setUnits(await productsApi.getUnits());
+    } catch {
+      setUnits([]);
+    }
+  }, []);
 
-  // Mutations
-  const createProductMutation = useMutation({
-    mutationFn: productsApi.createProduct,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['products'] });
-      queryClient.invalidateQueries({ queryKey: ['products-metrics'] });
-      toast.success('تمت إضافة المنتج بنجاح');
-      setIsProductModalOpen(false);
-    },
-    onError: (err: any) => {
-      toast.error(err.response?.data?.message || 'فشلت إضافة المنتج');
-    },
-  });
+  const refreshMetrics = useCallback(async () => {
+    try {
+      setMetrics(await productsApi.getMetrics());
+    } catch {
+      setMetrics(null);
+    }
+  }, []);
 
-  const updateProductMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: Partial<Product> }) =>
-      productsApi.updateProduct(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['products'] });
-      queryClient.invalidateQueries({ queryKey: ['products-metrics'] });
-      toast.success('تم تحديث المنتج بنجاح');
-      setIsProductModalOpen(false);
-      setEditingProduct(null);
-    },
-    onError: (err: any) => {
-      toast.error(err.response?.data?.message || 'فشل تحديث المنتج');
-    },
-  });
+  useEffect(() => {
+    refreshProducts();
+  }, [refreshProducts]);
 
-  const deleteProductMutation = useMutation({
-    mutationFn: productsApi.deleteProduct,
-    onSuccess: (res) => {
-      queryClient.invalidateQueries({ queryKey: ['products'] });
-      queryClient.invalidateQueries({ queryKey: ['products-metrics'] });
-      toast.success(res.message || 'تم حذف المنتج');
-    },
-    onError: (err: any) => {
-      toast.error(err.response?.data?.message || 'تعذر حذف المنتج');
-    },
-  });
+  useEffect(() => {
+    refreshCategories();
+    refreshUnits();
+    refreshMetrics();
+  }, [refreshCategories, refreshMetrics, refreshUnits]);
 
-  const adjustStockMutation = useMutation({
-    mutationFn: ({
-      productId,
-      data,
-    }: {
-      productId: number;
-      data: { type: string; quantity: number; notes?: string };
-    }) => productsApi.adjustStock(productId, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['products'] });
-      queryClient.invalidateQueries({ queryKey: ['products-metrics'] });
-      queryClient.invalidateQueries({ queryKey: ['stock-movements'] });
-    },
-  });
-
-  const handleSaveProduct = async (data: Partial<Product>) => {
-    if (editingProduct) {
-      await updateProductMutation.mutateAsync({ id: editingProduct.id, data });
-    } else {
-      await createProductMutation.mutateAsync(data);
+  const handleSaveProduct = async (data) => {
+    setIsSavingProduct(true);
+    try {
+      if (editingProduct) {
+        await productsApi.updateProduct(editingProduct.id, data);
+        await Promise.all([refreshProducts(), refreshMetrics()]);
+        toast.success('تم تحديث المنتج بنجاح');
+        setIsProductModalOpen(false);
+        setEditingProduct(null);
+      } else {
+        await productsApi.createProduct(data);
+        await Promise.all([refreshProducts(), refreshMetrics()]);
+        toast.success('تمت إضافة المنتج بنجاح');
+        setIsProductModalOpen(false);
+      }
+    } catch (err) {
+      toast.error(
+        err.response?.data?.message || (editingProduct ? 'فشل تحديث المنتج' : 'فشلت إضافة المنتج')
+      );
+    } finally {
+      setIsSavingProduct(false);
     }
   };
 
-  const handleDeleteProduct = async (product: Product) => {
+  const handleDeleteProduct = async (product) => {
     if (window.confirm(`هل أنت متأكد من حذف المنتج: "${product.name}"؟`)) {
-      await deleteProductMutation.mutateAsync(product.id);
+      try {
+        const res = await productsApi.deleteProduct(product.id);
+        await Promise.all([refreshProducts(), refreshMetrics()]);
+        toast.success(res.message || 'تم حذف المنتج');
+      } catch (err) {
+        toast.error(err.response?.data?.message || 'تعذر حذف المنتج');
+      }
     }
   };
 
-  const copyToClipboard = (text: string) => {
+  const handleAdjustStock = async (productId, data) => {
+    await productsApi.adjustStock(productId, data);
+    await Promise.all([refreshProducts(), refreshMetrics()]);
+  };
+
+  const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
     setCopiedBarcode(text);
     setTimeout(() => setCopiedBarcode(null), 2000);
@@ -318,7 +318,7 @@ export const ProductsPage: React.FC = () => {
                             </span>
                             {product.barcode ? (
                               <button
-                                onClick={() => copyToClipboard(product.barcode!)}
+                                onClick={() => copyToClipboard(product.barcode)}
                                 className="inline-flex items-center gap-1 mt-1 text-[11px] font-mono text-slate-400 hover:text-brand-400 bg-slate-950/60 px-2 py-0.5 rounded-md border border-slate-800 transition-colors"
                                 title="اضغط لنسخ الباركود"
                               >
@@ -467,7 +467,7 @@ export const ProductsPage: React.FC = () => {
           product={editingProduct}
           categories={categories}
           units={units}
-          isLoading={createProductMutation.isPending || updateProductMutation.isPending}
+          isLoading={isSavingProduct}
         />
       )}
 
@@ -478,15 +478,15 @@ export const ProductsPage: React.FC = () => {
           categories={categories}
           onCreate={async (data) => {
             await productsApi.createCategory(data);
-            queryClient.invalidateQueries({ queryKey: ['categories'] });
+            await refreshCategories();
           }}
           onUpdate={async (id, data) => {
             await productsApi.updateCategory(id, data);
-            queryClient.invalidateQueries({ queryKey: ['categories'] });
+            await refreshCategories();
           }}
           onDelete={async (id) => {
             await productsApi.deleteCategory(id);
-            queryClient.invalidateQueries({ queryKey: ['categories'] });
+            await refreshCategories();
           }}
         />
       )}
@@ -498,15 +498,15 @@ export const ProductsPage: React.FC = () => {
           units={units}
           onCreate={async (data) => {
             await productsApi.createUnit(data);
-            queryClient.invalidateQueries({ queryKey: ['units'] });
+            await refreshUnits();
           }}
           onUpdate={async (id, data) => {
             await productsApi.updateUnit(id, data);
-            queryClient.invalidateQueries({ queryKey: ['units'] });
+            await refreshUnits();
           }}
           onDelete={async (id) => {
             await productsApi.deleteUnit(id);
-            queryClient.invalidateQueries({ queryKey: ['units'] });
+            await refreshUnits();
           }}
         />
       )}
@@ -516,9 +516,7 @@ export const ProductsPage: React.FC = () => {
           isOpen={!!adjustingProduct}
           onClose={() => setAdjustingProduct(null)}
           product={adjustingProduct}
-          onAdjust={async (productId, data) => {
-            await adjustStockMutation.mutateAsync({ productId, data });
-          }}
+          onAdjust={handleAdjustStock}
         />
       )}
     </div>

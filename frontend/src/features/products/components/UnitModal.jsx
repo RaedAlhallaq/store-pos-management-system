@@ -1,21 +1,11 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Modal } from '../../../components/ui/Modal';
 import { Input } from '../../../components/ui/Input';
 import { Button } from '../../../components/ui/Button';
 import { Plus, Trash2, Edit2, Scale, Check } from 'lucide-react';
-import type { Unit } from '../types/productTypes';
 import { toast } from 'sonner';
 
-interface UnitModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  units: Unit[];
-  onCreate: (data: Partial<Unit>) => Promise<void>;
-  onUpdate: (id: number, data: Partial<Unit>) => Promise<void>;
-  onDelete: (id: number) => Promise<void>;
-}
-
-export const UnitModal: React.FC<UnitModalProps> = ({
+export const UnitModal = ({
   isOpen,
   onClose,
   units,
@@ -23,13 +13,13 @@ export const UnitModal: React.FC<UnitModalProps> = ({
   onUpdate,
   onDelete,
 }) => {
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState(null);
   const [name, setName] = useState('');
   const [shortName, setShortName] = useState('');
   const [allowDecimal, setAllowDecimal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const startEdit = (unit: Unit) => {
+  const startEdit = (unit) => {
     setEditingId(unit.id);
     setName(unit.name);
     setShortName(unit.short_name);
@@ -43,7 +33,7 @@ export const UnitModal: React.FC<UnitModalProps> = ({
     setAllowDecimal(false);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!name.trim() || !shortName.trim()) {
       toast.error('يرجى إدخال اسم الوحدة والرمز المختصر');
@@ -60,19 +50,19 @@ export const UnitModal: React.FC<UnitModalProps> = ({
         toast.success('تمت إضافة وحدة القياس');
       }
       resetForm();
-    } catch (error: any) {
+    } catch (error) {
       toast.error(error.response?.data?.message || 'حدث خطأ أثناء الحفظ');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id) => {
     if (window.confirm('هل أنت متأكد من حذف وحدة القياس هذه؟')) {
       try {
         await onDelete(id);
         toast.success('تم حذف الوحدة');
-      } catch (error: any) {
+      } catch (error) {
         toast.error(error.response?.data?.message || 'لا يمكن حذف الوحدة');
       }
     }

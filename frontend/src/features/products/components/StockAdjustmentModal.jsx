@@ -1,27 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Modal } from '../../../components/ui/Modal';
 import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
 import { Button } from '../../../components/ui/Button';
 import { ArrowDownCircle, ArrowUpCircle, Check } from 'lucide-react';
-import type { Product } from '../types/productTypes';
 import { toast } from 'sonner';
 
-interface StockAdjustmentModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  product: Product | null;
-  onAdjust: (productId: number, data: { type: string; quantity: number; notes?: string }) => Promise<void>;
-}
-
-export const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
+export const StockAdjustmentModal = ({
   isOpen,
   onClose,
   product,
   onAdjust,
 }) => {
   const [type, setType] = useState('adjustment');
-  const [direction, setDirection] = useState<'add' | 'subtract'>('add');
+  const [direction, setDirection] = useState('add');
   const [amount, setAmount] = useState('');
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -42,7 +34,7 @@ export const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
   const signedQty = direction === 'add' ? qtyNumber : -qtyNumber;
   const newStock = currentStock + signedQty;
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!amount || qtyNumber <= 0) {
       toast.error('يرجى إدخال كمية صحيحة أكبر من الصفر');
@@ -63,7 +55,7 @@ export const StockAdjustmentModal: React.FC<StockAdjustmentModalProps> = ({
       });
       toast.success('تمت تسوية رصيد المخزون بنجاح');
       onClose();
-    } catch (error: any) {
+    } catch (error) {
       toast.error(error.response?.data?.message || 'فشلت عملية التسوية');
     } finally {
       setIsSubmitting(false);

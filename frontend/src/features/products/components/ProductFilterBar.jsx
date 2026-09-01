@@ -1,14 +1,5 @@
-import React from 'react';
 import { Search, Filter, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react';
-import type { Category, ProductFilters } from '../types/productTypes';
-
-interface ProductFilterBarProps {
-  filters: ProductFilters;
-  categories: Category[];
-  onFilterChange: (newFilters: Partial<ProductFilters>) => void;
-}
-
-export const ProductFilterBar: React.FC<ProductFilterBarProps> = ({
+export const ProductFilterBar = ({
   filters,
   categories,
   onFilterChange,

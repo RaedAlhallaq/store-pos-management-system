@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -7,7 +7,6 @@ import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
 import { Button } from '../../../components/ui/Button';
 import { Sparkles, Barcode, Calculator, Check } from 'lucide-react';
-import type { Category, Product, Unit } from '../types/productTypes';
 
 const productSchema = z.object({
   name: z.string().min(2, 'اسم المنتج يجب أن يتكون من حرفين على الأقل'),
@@ -31,19 +30,7 @@ const productSchema = z.object({
   path: ['selling_price'],
 });
 
-type ProductFormData = z.input<typeof productSchema>;
-
-interface ProductModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSave: (data: Partial<Product>) => Promise<void>;
-  product?: Product | null;
-  categories: Category[];
-  units: Unit[];
-  isLoading?: boolean;
-}
-
-export const ProductModal: React.FC<ProductModalProps> = ({
+export const ProductModal = ({
   isOpen,
   onClose,
   onSave,
@@ -61,7 +48,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
     watch,
     reset,
     formState: { errors },
-  } = useForm<ProductFormData>({
+  } = useForm({
     resolver: zodResolver(productSchema),
     defaultValues: {
       name: '',
@@ -123,7 +110,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
     setValue('barcode', `628${randomSuffix}`, { shouldValidate: true });
   };
 
-  const onSubmit = async (data: ProductFormData) => {
+  const onSubmit = async (data) => {
     await onSave({
       name: data.name,
       barcode: data.barcode || undefined,

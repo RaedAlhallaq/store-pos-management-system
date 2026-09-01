@@ -1,21 +1,11 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Modal } from '../../../components/ui/Modal';
 import { Input } from '../../../components/ui/Input';
 import { Button } from '../../../components/ui/Button';
 import { Plus, Trash2, Edit2, Layers, Check } from 'lucide-react';
-import type { Category } from '../types/productTypes';
 import { toast } from 'sonner';
 
-interface CategoryModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  categories: Category[];
-  onCreate: (data: Partial<Category>) => Promise<void>;
-  onUpdate: (id: number, data: Partial<Category>) => Promise<void>;
-  onDelete: (id: number) => Promise<void>;
-}
-
-export const CategoryModal: React.FC<CategoryModalProps> = ({
+export const CategoryModal = ({
   isOpen,
   onClose,
   categories,
@@ -23,13 +13,13 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({
   onUpdate,
   onDelete,
 }) => {
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState(null);
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const startEdit = (cat: Category) => {
+  const startEdit = (cat) => {
     setEditingId(cat.id);
     setName(cat.name);
     setCode(cat.code || '');
@@ -43,7 +33,7 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({
     setDescription('');
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!name.trim()) {
       toast.error('يرجى إدخال اسم التصنيف');
@@ -60,19 +50,19 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({
         toast.success('تمت إضافة التصنيف بنجاح');
       }
       resetForm();
-    } catch (error: any) {
+    } catch (error) {
       toast.error(error.response?.data?.message || 'حدث خطأ أثناء الحفظ');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id) => {
     if (window.confirm('هل أنت متأكد من حذف هذا التصنيف؟')) {
       try {
         await onDelete(id);
         toast.success('تم حذف التصنيف');
-      } catch (error: any) {
+      } catch (error) {
         toast.error(error.response?.data?.message || 'لا يمكن حذف التصنيف');
       }
     }

@@ -101,7 +101,7 @@ export const cashSessionApi = {
     const now = nowIso();
     const expectedCash = money(
       money(session.opening_cash) +
-      money(session.total_sales_cash) +
+      money(session.total_sales_cash) -
       money(session.total_expenses_cash || 0)
     );
     const actualCash = money(data.closing_cash_actual);

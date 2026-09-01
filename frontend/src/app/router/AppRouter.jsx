@@ -10,7 +10,7 @@ import { CustomersPage } from '../../features/customers/pages/CustomersPage';
 import { SuppliersPage } from '../../features/suppliers/pages/SuppliersPage';
 import { PurchasesPage } from '../../features/purchases/pages/PurchasesPage';
 import { ExpensesPage } from '../../features/expenses/pages/ExpensesPage';
-import DailyClosingPage from '../../features/daily-closing/pages/DailyClosingPage';
+import { DailyClosingPage } from '../../features/daily-closing/pages/DailyClosingPage';
 import { ReportsPage } from '../../features/reports/pages/ReportsPage';
 import SettingsPage from '../../features/settings/pages/SettingsPage';
 import { ProtectedRoute } from './ProtectedRoute';

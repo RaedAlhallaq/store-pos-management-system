@@ -14,8 +14,9 @@ import {
   Wallet,
   Receipt,
 } from 'lucide-react';
+import { fmtLocale } from '../../../lib/utils';
 
-const fmt = (n) => parseFloat(String(n || 0)).toLocaleString('ar-SA', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmt = fmtLocale;
 
 /* ── Stat Card ──────────────────────────────────── */
 function StatCard({ label, value, sub, color = 'text-white', icon: Icon, isLoading }) {

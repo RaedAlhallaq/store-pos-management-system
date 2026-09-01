@@ -29,12 +29,9 @@ import { cashSessionApi } from '../../daily-closing/api/cashSessionApi';
 import { Card } from '../../../components/ui/Card';
 import { Badge } from '../../../components/ui/Badge';
 import { Button } from '../../../components/ui/Button';
+import { fmtLocale } from '../../../lib/utils';
 
-const fmt = (value) =>
-  Number.parseFloat(String(value || 0)).toLocaleString('ar-SA', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
+const fmt = fmtLocale;
 
 function SkeletonCard() {
   return (

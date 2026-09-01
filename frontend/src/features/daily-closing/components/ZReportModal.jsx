@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { settingsApi } from '../../settings/api/settingsApi';
+import { fmtFixed } from '../../../lib/utils';
 
-const fmt = (n) => Number(n).toFixed(2);
+const fmt = fmtFixed;
 
 export default function ZReportModal({ isOpen, zReport, onClose }) {
   const [storeName, setStoreName] = useState('الأصيل للمنظفات');
@@ -45,7 +46,7 @@ export default function ZReportModal({ isOpen, zReport, onClose }) {
             <p className="font-bold text-center text-xs text-slate-500">نتيجة الجرد</p>
             <div className="flex justify-between font-bold"><span>المتوقع:</span><span>{fmt(zReport.closing_cash_expected)} ₪</span></div>
             <div className="flex justify-between font-bold"><span>الفعلي:</span><span>{fmt(zReport.closing_cash_actual)} ₪</span></div>
-            <div className={`flex justify-between font-bold text-base pt-1 ${zReport.variance_status === 'balanced' ? 'text-emerald-700' : zReport.variance_status === 'surplus' ? 'text-blue-700' : 'text-red-700'}`}><span>الفرق:</span><span>{zReport.difference > 0 ? '+' : ''}{fmt(zReport.difference)} ₪</span></div>
+            <div className={`flex justify-between font-bold text-base pt-1 ${zReport.variance_status === 'balanced' ? 'text-emerald-700' : zReport.variance_status === 'surplus' ? 'text-brand-700' : 'text-rose-700'}`}><span>الفرق:</span><span>{zReport.difference > 0 ? '+' : ''}{fmt(zReport.difference)} ₪</span></div>
           </div>
           <div className="text-center text-xs text-slate-500 mt-3"><p>نهاية التقرير</p></div>
         </div>

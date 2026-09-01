@@ -5,16 +5,21 @@ export function cn(...inputs) {
   return twMerge(clsx(inputs));
 }
 
-export function formatCurrency(amount, currencySymbol = '₪') {
-  return `${Number(amount || 0).toLocaleString('ar-SA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currencySymbol}`;
+/**
+ * Format a number as Arabic locale string with 2 decimal places.
+ * Used for financial display in tables and dashboards.
+ */
+export function fmtLocale(value) {
+  return Number.parseFloat(String(value || 0)).toLocaleString('ar-SA', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 }
 
-export function formatDate(date) {
-  return new Intl.DateTimeFormat('ar-SA', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(date));
+/**
+ * Format a number as fixed 2 decimal places.
+ * Used for receipt/closing displays where plain decimals are needed.
+ */
+export function fmtFixed(value) {
+  return parseFloat(String(value || 0)).toFixed(2);
 }

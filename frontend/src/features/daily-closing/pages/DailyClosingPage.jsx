@@ -6,6 +6,7 @@ import CashMovementModal from '../components/CashMovementModal';
 import ZReportModal from '../components/ZReportModal';
 import { Button } from '../../../components/ui/Button';
 import { Badge } from '../../../components/ui/Badge';
+import { fmtFixed } from '../../../lib/utils';
 import {
   Banknote,
   RefreshCw,
@@ -57,7 +58,7 @@ export function DailyClosingPage() {
     }
   };
 
-  const fmt = (n) => parseFloat(String(n || 0)).toFixed(2);
+  const fmt = fmtFixed;
 
   const sessionHistory = sessions.filter((s) => s.status === 'closed');
   const totalCashSales = sessions.reduce((sum, s) => sum + parseFloat(s.total_sales_cash || 0), 0);

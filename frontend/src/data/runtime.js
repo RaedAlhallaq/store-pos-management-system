@@ -1,4 +1,5 @@
 import { db } from './db';
+import { apiError } from './errors';
 import { seedIfEmpty } from './seed';
 
 let ready = null;
@@ -29,10 +30,23 @@ export function todayDate() {
 export function currentUser() {
   try {
     const raw = localStorage.getItem('store_pos_user');
-    return raw ? JSON.parse(raw) : { id: 1, name: 'مالك المحل' };
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed && parsed.id && parsed.name) return parsed;
+    return null;
   } catch {
-    return { id: 1, name: 'مالك المحل' };
+    return null;
   }
+}
+
+/**
+ * Returns current user or throws if not authenticated.
+ * Use in API methods that require an active session.
+ */
+export function requireUser() {
+  const user = currentUser();
+  if (!user) apiError('يجب تسجيل الدخول أولاً.');
+  return user;
 }
 
 export async function nextSequence(prefix, storeName, field) {

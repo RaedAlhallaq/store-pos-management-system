@@ -1,7 +1,7 @@
 import { db } from '../../../data/db';
 import { apiError } from '../../../data/errors';
 import { paginate } from '../../../data/paginate';
-import { currentUser, ensureReady, money, nextSequence, nowIso } from '../../../data/runtime';
+import { ensureReady, money, nextSequence, nowIso, requireUser } from '../../../data/runtime';
 
 function publicSupplier(supplier) {
   return {
@@ -65,12 +65,13 @@ export const suppliersApi = {
     const after = money(before - amount);
     await db.put('suppliers', { ...supplier, current_balance: after });
     const sessions = await db.getAll('cashSessions');
-    const active = sessions.find((session) => session.status === 'open' && session.user_id === currentUser().id);
+    const user = requireUser();
+    const active = sessions.find((session) => session.status === 'open' && session.user_id === user.id);
     const paymentNumber = await nextSequence('SPAY', 'supplierPayments', 'payment_number');
     const paymentId = await db.add('supplierPayments', {
       payment_number: paymentNumber,
       supplier_id: id,
-      user_id: currentUser().id,
+      user_id: user.id,
       cash_session_id: active?.id || null,
       amount,
       payment_method: data.payment_method,
@@ -80,7 +81,7 @@ export const suppliersApi = {
     });
     const transactionId = await db.add('supplierTransactions', {
       supplier_id: id,
-      user_id: currentUser().id,
+      user_id: user.id,
       type: 'payment',
       amount,
       balance_before: before,

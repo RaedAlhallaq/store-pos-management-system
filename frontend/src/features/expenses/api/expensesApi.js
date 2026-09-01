@@ -1,7 +1,7 @@
 import { db } from '../../../data/db';
 import { apiError } from '../../../data/errors';
 import { paginate } from '../../../data/paginate';
-import { currentUser, ensureReady, money, nextSequence, nowIso } from '../../../data/runtime';
+import { ensureReady, money, nextSequence, nowIso, requireUser } from '../../../data/runtime';
 
 function formatExpense(expense, categories) {
   const category = categories.find((c) => c.id === expense.expense_category_id) || null;
@@ -56,7 +56,7 @@ export const expensesApi = {
 
   async createExpense(payload) {
     await ensureReady();
-    const user = currentUser();
+    const user = requireUser();
     const expenseNumber = await nextSequence('EXP', 'expenses', 'expense_number');
     const now = nowIso();
     const id = await db.add('expenses', {

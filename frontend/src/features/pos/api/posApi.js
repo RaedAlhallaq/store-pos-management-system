@@ -1,7 +1,7 @@
 import { db } from '../../../data/db';
 import { apiError } from '../../../data/errors';
 import { paginate } from '../../../data/paginate';
-import { currentUser, ensureReady, inDateRange, money, nextSequence, nowIso, qty } from '../../../data/runtime';
+import { ensureReady, inDateRange, money, nextSequence, nowIso, qty, requireUser } from '../../../data/runtime';
 
 function formatSale(sale) {
   return {
@@ -36,7 +36,7 @@ export const posApi = {
     const items = payload.items || [];
     if (!items.length) apiError('سلة المبيعات فارغة، يرجى إضافة منتج واحد على الأقل.');
 
-    const user = currentUser();
+    const user = requireUser();
     const sessions = await db.getAll('cashSessions');
     const active = sessions.find((session) => session.status === 'open' && session.user_id === user.id) || null;
     let subtotal = 0;
@@ -69,6 +69,13 @@ export const posApi = {
         discount_amount: itemDiscount,
         subtotal: money(lineNet + itemTax),
       });
+    }
+
+    // Validate stock availability before any stock changes (prevent partial state)
+    for (const prep of prepared) {
+      if (qty(prep.product.stock_quantity) < qty(prep.quantity)) {
+        apiError(`المنتج "${prep.product_name}" لا يملك مخزوناً كافياً. المتوفر: ${qty(prep.product.stock_quantity).toFixed(0)}، المطلوب: ${qty(prep.quantity).toFixed(0)}.`);
+      }
     }
 
     const overallDiscount = money(payload.discount_amount || 0);
@@ -217,7 +224,7 @@ export const posApi = {
     const sale = await db.get('sales', id);
     if (!sale) apiError('الفاتورة غير موجودة.');
     if (sale.invoice_status === 'void') apiError('هذه الفاتورة ملغاة مسبقاً.');
-    const user = currentUser();
+    const user = requireUser();
     const createdAt = nowIso();
 
     for (const item of sale.items || []) {

@@ -1,7 +1,7 @@
 import { db } from '../../../data/db';
 import { apiError } from '../../../data/errors';
 import { paginate } from '../../../data/paginate';
-import { currentUser, ensureReady, money, nowIso, qty } from '../../../data/runtime';
+import { ensureReady, money, nowIso, qty, requireUser } from '../../../data/runtime';
 
 function withRelations(product, categories, units) {
   const cost = money(product.cost_price);
@@ -73,6 +73,7 @@ export const productsApi = {
 
   async createProduct(data) {
     await ensureReady();
+    const user = requireUser();
     const now = nowIso();
     const initialStock = qty(data.stock_quantity);
     const id = await db.add('products', {
@@ -94,8 +95,8 @@ export const productsApi = {
     if (initialStock > 0) {
       await db.add('stockMovements', {
         product_id: id,
-        user_id: currentUser().id,
-        user_name: currentUser().name,
+        user_id: user.id,
+        user_name: user.name,
         type: 'initial',
         quantity: initialStock,
         unit_cost: money(data.cost_price),
@@ -154,11 +155,12 @@ export const productsApi = {
     const before = qty(product.stock_quantity);
     const after = qty(before + change);
     if (after < 0 && data.type === 'damage') apiError('الكمية التالفة تتجاوز رصيد المخزون المتوفر.');
+    const user = requireUser();
     await db.put('products', { ...product, stock_quantity: after, updated_at: nowIso() });
     const movementId = await db.add('stockMovements', {
       product_id: id,
-      user_id: currentUser().id,
-      user_name: currentUser().name,
+      user_id: user.id,
+      user_name: user.name,
       type: data.type,
       quantity: change,
       unit_cost: money(product.cost_price),

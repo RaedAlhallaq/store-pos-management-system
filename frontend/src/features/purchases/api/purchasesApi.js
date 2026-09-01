@@ -1,7 +1,7 @@
 import { db } from '../../../data/db';
 import { apiError } from '../../../data/errors';
 import { paginate } from '../../../data/paginate';
-import { currentUser, ensureReady, inDateRange, money, nextSequence, nowIso, qty } from '../../../data/runtime';
+import { ensureReady, inDateRange, money, nextSequence, nowIso, qty, requireUser } from '../../../data/runtime';
 
 function formatPurchase(purchase, suppliers) {
   const supplier = suppliers.find((s) => s.id === purchase.supplier_id) || null;
@@ -67,7 +67,7 @@ export const purchasesApi = {
     const items = payload.items || [];
     if (!items.length) apiError('يجب إضافة صنف واحد على الأقل.');
 
-    const user = currentUser();
+    const user = requireUser();
     const supplier = payload.supplier_id ? await db.get('suppliers', payload.supplier_id) : null;
     if (!supplier) apiError('يجب تحديد مورد صالح.');
 
@@ -183,7 +183,7 @@ export const purchasesApi = {
     if (!purchase) apiError('فاتورة المشتريات غير موجودة.');
     if (purchase.purchase_status === 'void') apiError('هذه الفاتورة ملغاة مسبقاً.');
 
-    const user = currentUser();
+    const user = requireUser();
     const createdAt = nowIso();
 
     // Reverse stock

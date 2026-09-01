@@ -1,7 +1,7 @@
 import { db } from '../../../data/db';
 import { apiError } from '../../../data/errors';
 import { paginate } from '../../../data/paginate';
-import { currentUser, ensureReady, money, nextSequence, nowIso } from '../../../data/runtime';
+import { ensureReady, money, nextSequence, nowIso, requireUser } from '../../../data/runtime';
 
 function formatSession(session) {
   return {
@@ -18,7 +18,7 @@ function formatSession(session) {
 export const cashSessionApi = {
   async getActiveSession() {
     await ensureReady();
-    const user = currentUser();
+    const user = requireUser();
     const sessions = await db.getAll('cashSessions');
     const active = sessions.find((s) => s.status === 'open' && s.user_id === user.id);
     return active ? formatSession(active) : null;
@@ -34,7 +34,7 @@ export const cashSessionApi = {
 
   async openSession(data) {
     await ensureReady();
-    const user = currentUser();
+    const user = requireUser();
     const now = nowIso();
     const sessionNumber = await nextSequence('CS', 'cashSessions', 'session_number');
     const id = await db.add('cashSessions', {
@@ -64,7 +64,7 @@ export const cashSessionApi = {
     if (!session) apiError('جلسة الصندوق غير موجودة.');
     if (session.status !== 'open') apiError('هذه الجلسة مغلقة.');
 
-    const user = currentUser();
+    const user = requireUser();
     const now = nowIso();
     const movement = {
       type: data.type,
@@ -99,10 +99,32 @@ export const cashSessionApi = {
     if (session.status !== 'open') apiError('هذه الجلسة مغلقة بالفعل.');
 
     const now = nowIso();
+
+    // Calculate expected cash from actual records (matching ZReport formula).
+    // Query real expense records instead of relying on session.total_expenses_cash
+    // which may be stale if expenses were created outside of recordMovement.
+    // Also compute cashIn/cashOut from session movements for consistency.
+    const allExpensesForSession = await db.getAll('expenses');
+    const sessionExpenses = allExpensesForSession.filter((e) => {
+      return e.created_at && e.created_at >= (session.opened_at || '') && (!session.closed_at || e.created_at <= session.closed_at);
+    });
+    const totalExpenses = sessionExpenses.reduce((sum, e) => sum + money(e.amount), 0);
+
+    const movements = session.movements || [];
+    const totalCashIn = movements.filter((m) => m.type === 'in').reduce((sum, m) => sum + money(m.amount), 0);
+    const totalCashOut = movements.filter((m) => m.type === 'out').reduce((sum, m) => sum + money(m.amount), 0);
+
+    // Cash sales from actual payment records (not session accumulator which may include cash-in)
+    const allSales = (await db.getAll('sales')).filter(
+      (s) => s.cash_session_id === sessionId && s.invoice_status !== 'void'
+    );
+    const actualCashSales = allSales.reduce(
+      (sum, s) => sum + (s.payments || []).filter((p) => p.payment_method === 'cash').reduce((ps, p) => ps + money(p.amount), 0),
+      0
+    );
+
     const expectedCash = money(
-      money(session.opening_cash) +
-      money(session.total_sales_cash) -
-      money(session.total_expenses_cash || 0)
+      money(session.opening_cash) + actualCashSales + totalCashIn - totalCashOut - totalExpenses
     );
     const actualCash = money(data.closing_cash_actual);
     const difference = money(actualCash - expectedCash);

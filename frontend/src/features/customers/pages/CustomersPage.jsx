@@ -1,5 +1,4 @@
-import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useEffect, useState } from 'react';
 import { customersApi } from '../api/customersApi';
 import { Modal } from '../../../components/ui/Modal';
 import { Input } from '../../../components/ui/Input';
@@ -21,21 +20,19 @@ import {
   Trash2,
   Check,
 } from 'lucide-react';
-import type { Customer } from '../types/customerTypes';
 import { toast } from 'sonner';
 
-export const CustomersPage: React.FC = () => {
-  const queryClient = useQueryClient();
+export const CustomersPage = () => {
   const [search, setSearch] = useState('');
-  const [hasDebt, setHasDebt] = useState<boolean | undefined>(undefined);
+  const [hasDebt, setHasDebt] = useState(undefined);
   const [page, setPage] = useState(1);
 
   // Customer Edit/Create Modal state
   const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
-  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
+  const [editingCustomer, setEditingCustomer] = useState(null);
 
   // Payment Modal state
-  const [payingCustomer, setPayingCustomer] = useState<Customer | null>(null);
+  const [payingCustomer, setPayingCustomer] = useState(null);
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [paymentNotes, setPaymentNotes] = useState('');
@@ -48,73 +45,43 @@ export const CustomersPage: React.FC = () => {
   const [formCreditLimit, setFormCreditLimit] = useState('1000.00');
   const [formAddress, setFormAddress] = useState('');
 
-  // Queries
-  const { data: customersData, isLoading } = useQuery({
-    queryKey: ['customers', { page, search, hasDebt }],
-    queryFn: () => customersApi.getCustomers({ page, search: search || undefined, has_debt: hasDebt, per_page: 15 }),
-  });
+  // Data state
+  const [customersData, setCustomersData] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSavingCustomer, setIsSavingCustomer] = useState(false);
+  const [isRecordingPayment, setIsRecordingPayment] = useState(false);
 
-  // Mutations
-  const createCustomerMutation = useMutation({
-    mutationFn: customersApi.createCustomer,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['customers'] });
-      queryClient.invalidateQueries({ queryKey: ['quick-customers'] });
-      toast.success('تمت إضافة العميل بنجاح');
-      setIsCustomerModalOpen(false);
-    },
-    onError: (err: any) => {
-      toast.error(err.response?.data?.message || 'فشلت إضافة العميل');
-    },
-  });
+  const refreshCustomers = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      setCustomersData(
+        await customersApi.getCustomers({
+          page,
+          search: search || undefined,
+          has_debt: hasDebt,
+          per_page: 15,
+        })
+      );
+    } catch {
+      setCustomersData(null);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [page, search, hasDebt]);
 
-  const updateCustomerMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: Partial<Customer> }) =>
-      customersApi.updateCustomer(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['customers'] });
-      queryClient.invalidateQueries({ queryKey: ['quick-customers'] });
-      toast.success('تم تحديث بيانات العميل بنجاح');
-      setIsCustomerModalOpen(false);
-      setEditingCustomer(null);
-    },
-    onError: (err: any) => {
-      toast.error(err.response?.data?.message || 'فشل تحديث العميل');
-    },
-  });
+  useEffect(() => {
+    refreshCustomers();
+  }, [refreshCustomers]);
 
-  const recordPaymentMutation = useMutation({
-    mutationFn: ({
-      id,
-      data,
-    }: {
-      id: number;
-      data: { amount: number; payment_method: string; notes?: string };
-    }) => customersApi.recordPayment(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['customers'] });
-      queryClient.invalidateQueries({ queryKey: ['quick-customers'] });
-      toast.success('تم تسجيل سند القبض وتحديث رصيد العميل بنجاح');
-      setPayingCustomer(null);
-      setPaymentAmount('');
-      setPaymentNotes('');
-    },
-    onError: (err: any) => {
-      toast.error(err.response?.data?.message || 'فشل تسجيل الدفعة');
-    },
-  });
-
-  const deleteCustomerMutation = useMutation({
-    mutationFn: customersApi.deleteCustomer,
-    onSuccess: (res) => {
-      queryClient.invalidateQueries({ queryKey: ['customers'] });
-      queryClient.invalidateQueries({ queryKey: ['quick-customers'] });
+  const handleDeleteCustomer = async (customer) => {
+    try {
+      const res = await customersApi.deleteCustomer(customer.id);
+      await refreshCustomers();
       toast.success(res.message || 'تم حذف العميل');
-    },
-    onError: (err: any) => {
+    } catch (err) {
       toast.error(err.response?.data?.message || 'تعذر حذف العميل');
-    },
-  });
+    }
+  };
 
   const handleOpenCreate = () => {
     setEditingCustomer(null);
@@ -127,7 +94,7 @@ export const CustomersPage: React.FC = () => {
     setIsCustomerModalOpen(true);
   };
 
-  const handleOpenEdit = (customer: Customer) => {
+  const handleOpenEdit = (customer) => {
     setEditingCustomer(customer);
     setFormName(customer.name);
     setFormPhone(customer.phone || '');
@@ -138,14 +105,14 @@ export const CustomersPage: React.FC = () => {
     setIsCustomerModalOpen(true);
   };
 
-  const handleSaveCustomer = async (e: React.FormEvent) => {
+  const handleSaveCustomer = async (e) => {
     e.preventDefault();
     if (!formName.trim()) {
       toast.error('اسم العميل مطلوب');
       return;
     }
 
-    const payload: Partial<Customer> = {
+    const payload = {
       name: formName.trim(),
       phone: formPhone.trim() || undefined,
       email: formEmail.trim() || undefined,
@@ -155,14 +122,30 @@ export const CustomersPage: React.FC = () => {
       is_active: true,
     };
 
-    if (editingCustomer) {
-      await updateCustomerMutation.mutateAsync({ id: editingCustomer.id, data: payload });
-    } else {
-      await createCustomerMutation.mutateAsync(payload);
+    setIsSavingCustomer(true);
+    try {
+      if (editingCustomer) {
+        await customersApi.updateCustomer(editingCustomer.id, payload);
+        await refreshCustomers();
+        toast.success('تم تحديث بيانات العميل بنجاح');
+        setIsCustomerModalOpen(false);
+        setEditingCustomer(null);
+      } else {
+        await customersApi.createCustomer(payload);
+        await refreshCustomers();
+        toast.success('تمت إضافة العميل بنجاح');
+        setIsCustomerModalOpen(false);
+      }
+    } catch (err) {
+      toast.error(
+        err.response?.data?.message || (editingCustomer ? 'فشل تحديث العميل' : 'فشلت إضافة العميل')
+      );
+    } finally {
+      setIsSavingCustomer(false);
     }
   };
 
-  const handleConfirmPayment = async (e: React.FormEvent) => {
+  const handleConfirmPayment = async (e) => {
     e.preventDefault();
     const amountNum = Number(paymentAmount);
     if (!payingCustomer || isNaN(amountNum) || amountNum <= 0) {
@@ -170,14 +153,23 @@ export const CustomersPage: React.FC = () => {
       return;
     }
 
-    await recordPaymentMutation.mutateAsync({
-      id: payingCustomer.id,
-      data: {
+    setIsRecordingPayment(true);
+    try {
+      await customersApi.recordPayment(payingCustomer.id, {
         amount: amountNum,
         payment_method: paymentMethod,
         notes: paymentNotes || undefined,
-      },
-    });
+      });
+      await refreshCustomers();
+      toast.success('تم تسجيل سند القبض وتحديث رصيد العميل بنجاح');
+      setPayingCustomer(null);
+      setPaymentAmount('');
+      setPaymentNotes('');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'فشل تسجيل الدفعة');
+    } finally {
+      setIsRecordingPayment(false);
+    }
   };
 
   const totalOutstandingDebt =
@@ -432,7 +424,7 @@ export const CustomersPage: React.FC = () => {
                               title="حذف / تعطيل العميل"
                               onClick={() => {
                                 if (window.confirm(`هل أنت متأكد من حذف العميل: "${customer.name}"؟`)) {
-                                  deleteCustomerMutation.mutate(customer.id);
+                                  handleDeleteCustomer(customer);
                                 }
                               }}
                               className="text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 p-1.5"
@@ -529,13 +521,13 @@ export const CustomersPage: React.FC = () => {
                 type="button"
                 variant="outline"
                 onClick={() => setIsCustomerModalOpen(false)}
-                disabled={createCustomerMutation.isPending || updateCustomerMutation.isPending}
+                disabled={isSavingCustomer}
               >
                 إلغاء
               </Button>
               <Button
                 type="submit"
-                isLoading={createCustomerMutation.isPending || updateCustomerMutation.isPending}
+                isLoading={isSavingCustomer}
                 rightIcon={<Check className="w-4 h-4" />}
               >
                 {editingCustomer ? 'حفظ التعديلات' : 'إضافة العميل'}
@@ -587,13 +579,13 @@ export const CustomersPage: React.FC = () => {
                 type="button"
                 variant="outline"
                 onClick={() => setPayingCustomer(null)}
-                disabled={recordPaymentMutation.isPending}
+                disabled={isRecordingPayment}
               >
                 إلغاء
               </Button>
               <Button
                 type="submit"
-                isLoading={recordPaymentMutation.isPending}
+                isLoading={isRecordingPayment}
                 className="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold"
                 rightIcon={<Check className="w-4 h-4" />}
               >

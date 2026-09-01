@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-09-01 - PHASE 1H - Customers Migration
+
+- Task: migrate the Customers feature from TypeScript and TanStack Query to JavaScript and local React/Axios state.
+- Changes: replaced `customersApi.ts` and `CustomersPage.tsx` with `.js`/`.jsx` counterparts and deleted `types/customerTypes.ts`; replaced the customers query and the create, update, payment, and delete mutations with local state, an effect, and an explicit refresh function over the existing Axios client.
+- Preserved: search and debt filters, pagination, KPI cards and the outstanding-debt calculation, customer create/edit with its name validation, debt payment with its amount validation, delete confirmation, toasts, loading and empty states, routes, Arabic/RTL text, styling, and all API endpoints, payloads, and response handling used by the page, POS, and Dashboard.
+- Behavior note: customer changes no longer invalidate the POS `quick-customers` cache; the Customers page refreshes its own list and POS reloads its quick list on mount.
+- Verification: `npm install`, lint (16 warnings, no errors), and production build passed. Customers has no TypeScript file and no TanStack Query import or usage, and no `customerTypes` reference remains. Remaining TypeScript: 36 files. Remaining TanStack Query: 2 feature areas.
+
 ## 2026-09-01 - PHASE 1G - Purchases Migration
 
 - Task: migrate the Purchases feature from TypeScript and TanStack Query to JavaScript and local React/Axios state.

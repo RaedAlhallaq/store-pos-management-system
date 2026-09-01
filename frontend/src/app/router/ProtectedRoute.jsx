@@ -1,9 +1,8 @@
-import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../../features/auth/context/AuthContext';
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
+import { useAuth } from '../../features/auth/context/AuthContext';
 
-export const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export function ProtectedRoute({ children }) {
   const { isAuthenticated, isLoading } = useAuth();
   const location = useLocation();
 
@@ -19,5 +18,5 @@ export const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ childr
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  return <>{children}</>;
-};
+  return children;
+}

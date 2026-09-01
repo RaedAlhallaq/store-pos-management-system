@@ -106,6 +106,8 @@ class SaleService
             $preparedItems = [];
 
             // 1. Process and lock products for stock deduction
+            $reservedQuantities = [];
+
             foreach ($itemsData as $item) {
                 $productId = $item['product_id'];
                 $quantity = (float) $item['quantity'];
@@ -119,7 +121,23 @@ class SaleService
                     throw new InvalidArgumentException("المنتج ذو المعرف ({$productId}) غير موجود.");
                 }
 
-                $unitPrice = isset($item['unit_price']) ? (float) $item['unit_price'] : (float) $product->selling_price;
+                if (! $product->is_active) {
+                    throw new InvalidArgumentException("المنتج ({$product->name}) غير نشط ولا يمكن بيعه.");
+                }
+
+                $alreadyReserved = $reservedQuantities[$product->id] ?? 0.0;
+                $availableStock = (float) $product->stock_quantity - $alreadyReserved;
+
+                if ($quantity > $availableStock) {
+                    throw new InvalidArgumentException(
+                        "الكمية المطلوبة للصنف ({$product->name}) غير متوفرة. المتاح: {$availableStock}."
+                    );
+                }
+
+                $reservedQuantities[$product->id] = $alreadyReserved + $quantity;
+
+                // Selling price is always taken from the locked product row; client unit_price is ignored.
+                $unitPrice = (float) $product->selling_price;
                 $unitCost = (float) $product->cost_price;
                 $itemDiscount = (float) ($item['discount_amount'] ?? 0.0);
                 $taxPercent = (float) ($product->tax_percent ?? 15.0);

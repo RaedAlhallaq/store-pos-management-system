@@ -1,22 +1,17 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import type { User } from '../../../types';
-import type { AuthContextType, LoginCredentials } from '../types/authTypes';
-import { authApi } from '../api/authApi';
+import { createContext, useContext, useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { authApi } from '../api/authApi';
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext(undefined);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(() => {
+export function AuthProvider({ children }) {
+  const [user, setUser] = useState(() => {
     const saved = localStorage.getItem('store_pos_user');
     return saved ? JSON.parse(saved) : null;
   });
-  const [token, setToken] = useState<string | null>(() => {
-    return localStorage.getItem('store_pos_token');
-  });
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [token, setToken] = useState(() => localStorage.getItem('store_pos_token'));
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Initialize and verify authentication
   useEffect(() => {
     const initializeAuth = async () => {
       const storedToken = localStorage.getItem('store_pos_token');
@@ -26,7 +21,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(data.user);
           localStorage.setItem('store_pos_user', JSON.stringify(data.user));
         } catch {
-          // Token expired or invalid
           setToken(null);
           setUser(null);
           localStorage.removeItem('store_pos_token');
@@ -39,7 +33,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     initializeAuth();
   }, []);
 
-  const login = async (credentials: LoginCredentials) => {
+  const login = async (credentials) => {
     try {
       const data = await authApi.login(credentials);
       setToken(data.token);
@@ -47,7 +41,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.setItem('store_pos_token', data.token);
       localStorage.setItem('store_pos_user', JSON.stringify(data.user));
       toast.success(data.message || 'تم تسجيل الدخول بنجاح');
-    } catch (error: any) {
+    } catch (error) {
       const message =
         error.response?.data?.message ||
         error.response?.data?.errors?.email?.[0] ||
@@ -63,7 +57,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await authApi.logout();
       }
     } catch {
-      // Ignore API errors on logout
+      // A local logout should still succeed if the API request fails.
     } finally {
       setToken(null);
       setUser(null);
@@ -75,6 +69,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const refreshUser = async () => {
     if (!token) return;
+
     try {
       const data = await authApi.getUser();
       setUser(data.user);
@@ -89,7 +84,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       value={{
         user,
         token,
-        isAuthenticated: !!token && !!user,
+        isAuthenticated: Boolean(token && user),
         isLoading,
         login,
         logout,
@@ -99,12 +94,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       {children}
     </AuthContext.Provider>
   );
-};
+}
 
-export const useAuth = () => {
+export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-};
+}

@@ -178,4 +178,168 @@ class SaleApiTest extends TestCase
         // Customer debt restored back to 0
         $this->assertEquals('0.00', $this->customer->fresh()->current_balance);
     }
+
+    public function test_client_unit_price_is_ignored_in_favor_of_product_selling_price(): void
+    {
+        $this->product->update([
+            'selling_price' => 100.00,
+            'tax_percent' => 15.00,
+            'stock_quantity' => 10.000,
+        ]);
+
+        $response = $this->actingAs($this->cashier, 'sanctum')->postJson('/api/sales', [
+            'items' => [
+                [
+                    'product_id' => $this->product->id,
+                    'quantity' => 1,
+                    'unit_price' => 1.00,
+                ],
+            ],
+            'payments' => [
+                [
+                    'payment_method' => 'cash',
+                    'amount' => 115.00,
+                ],
+            ],
+        ]);
+
+        $response->assertStatus(201)
+            ->assertJson([
+                'success' => true,
+                'data' => [
+                    'subtotal' => '100.00',
+                    'tax_amount' => '15.00',
+                    'grand_total' => '115.00',
+                ],
+            ]);
+
+        $this->assertEquals('100.00', $response->json('data.items.0.unit_price'));
+        $this->assertDatabaseHas('sale_items', [
+            'product_id' => $this->product->id,
+            'unit_price' => 100.00,
+            'quantity' => 1.000,
+        ]);
+        $this->assertDatabaseMissing('sale_items', [
+            'product_id' => $this->product->id,
+            'unit_price' => 1.00,
+        ]);
+    }
+
+    public function test_insufficient_stock_rejects_sale_without_mutating_inventory(): void
+    {
+        $this->product->update(['stock_quantity' => 5.000]);
+
+        $response = $this->actingAs($this->cashier, 'sanctum')->postJson('/api/sales', [
+            'items' => [
+                [
+                    'product_id' => $this->product->id,
+                    'quantity' => 6,
+                ],
+            ],
+            'payments' => [
+                [
+                    'payment_method' => 'cash',
+                    'amount' => 1,
+                ],
+            ],
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJson([
+                'success' => false,
+            ]);
+
+        $this->assertDatabaseCount('sales', 0);
+        $this->assertDatabaseCount('sale_items', 0);
+        $this->assertDatabaseHas('products', [
+            'id' => $this->product->id,
+            'stock_quantity' => 5.000,
+        ]);
+    }
+
+    public function test_inactive_product_cannot_be_sold(): void
+    {
+        $originalStock = $this->product->stock_quantity;
+        $this->product->update(['is_active' => false]);
+
+        $response = $this->actingAs($this->cashier, 'sanctum')->postJson('/api/sales', [
+            'items' => [
+                [
+                    'product_id' => $this->product->id,
+                    'quantity' => 1,
+                ],
+            ],
+            'payments' => [
+                [
+                    'payment_method' => 'cash',
+                    'amount' => 97.75,
+                ],
+            ],
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJson([
+                'success' => false,
+            ]);
+
+        $this->assertDatabaseCount('sales', 0);
+        $this->assertDatabaseCount('sale_items', 0);
+        $this->assertDatabaseHas('products', [
+            'id' => $this->product->id,
+            'stock_quantity' => $originalStock,
+            'is_active' => false,
+        ]);
+    }
+
+    public function test_multi_item_sale_is_atomic_when_one_item_lacks_stock(): void
+    {
+        $productB = Product::create([
+            'category_id' => $this->product->category_id,
+            'unit_id' => $this->product->unit_id,
+            'name' => 'صنف محدود المخزون',
+            'barcode' => '7613035987000',
+            'cost_price' => 10.00,
+            'selling_price' => 20.00,
+            'tax_percent' => 15.00,
+            'stock_quantity' => 2.000,
+            'is_active' => true,
+        ]);
+
+        $this->product->update(['stock_quantity' => 10.000]);
+
+        $response = $this->actingAs($this->cashier, 'sanctum')->postJson('/api/sales', [
+            'items' => [
+                [
+                    'product_id' => $this->product->id,
+                    'quantity' => 1,
+                ],
+                [
+                    'product_id' => $productB->id,
+                    'quantity' => 3,
+                ],
+            ],
+            'payments' => [
+                [
+                    'payment_method' => 'cash',
+                    'amount' => 1,
+                ],
+            ],
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJson([
+                'success' => false,
+            ]);
+
+        $this->assertDatabaseCount('sales', 0);
+        $this->assertDatabaseCount('sale_items', 0);
+        $this->assertDatabaseHas('products', [
+            'id' => $this->product->id,
+            'stock_quantity' => 10.000,
+        ]);
+        $this->assertDatabaseHas('products', [
+            'id' => $productB->id,
+            'stock_quantity' => 2.000,
+        ]);
+    }
 }

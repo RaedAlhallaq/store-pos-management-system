@@ -1,13 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { Header } from './Header';
 import { Sidebar } from './Sidebar';
 
-export const AppLayout: React.FC = () => {
+export function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  // Always RTL for Arabic-only interface
   useEffect(() => {
     document.documentElement.dir = 'rtl';
     document.documentElement.lang = 'ar';
@@ -15,27 +14,19 @@ export const AppLayout: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-950 flex">
-      {/* Sidebar */}
       <Sidebar
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         isCollapsed={isCollapsed}
-        onToggleCollapse={() => setIsCollapsed((prev) => !prev)}
-        isRTL={true}
+        onToggleCollapse={() => setIsCollapsed((previous) => !previous)}
+        isRTL
       />
-
-      {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
-        <Header
-          onToggleSidebar={() => setSidebarOpen((prev) => !prev)}
-          isRTL={true}
-          onToggleRTL={() => {}}
-        />
-
+        <Header onToggleSidebar={() => setSidebarOpen((previous) => !previous)} />
         <main className="flex-1 p-4 md:p-6 overflow-y-auto max-w-7xl w-full mx-auto">
           <Outlet />
         </main>
       </div>
     </div>
   );
-};
+}

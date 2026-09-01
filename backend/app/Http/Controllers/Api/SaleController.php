@@ -10,6 +10,7 @@ use App\Services\SaleService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use InvalidArgumentException;
 
 class SaleController extends Controller
 {
@@ -42,7 +43,14 @@ class SaleController extends Controller
      */
     public function store(StoreSaleRequest $request): JsonResponse
     {
-        $sale = $this->saleService->processSale($request->validated(), $request->user());
+        try {
+            $sale = $this->saleService->processSale($request->validated(), $request->user());
+        } catch (InvalidArgumentException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        }
 
         return response()->json([
             'success' => true,

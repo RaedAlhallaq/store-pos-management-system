@@ -1,5 +1,4 @@
-import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useEffect, useState } from 'react';
 import { purchasesApi } from '../api/purchasesApi';
 import { suppliersApi } from '../../suppliers/api/suppliersApi';
 import { productsApi } from '../../products/api/productsApi';
@@ -19,11 +18,9 @@ import {
   DollarSign,
   TrendingDown,
 } from 'lucide-react';
-import type { Purchase, CreatePurchasePayload } from '../types/purchaseTypes';
 import { toast } from 'sonner';
 
-export const PurchasesPage: React.FC = () => {
-  const queryClient = useQueryClient();
+export const PurchasesPage = () => {
   const [search, setSearch] = useState('');
   const [paymentStatus, setPaymentStatus] = useState('');
   const [purchaseStatus, setPurchaseStatus] = useState('');
@@ -33,71 +30,83 @@ export const PurchasesPage: React.FC = () => {
 
   const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
 
-  // Queries
-  const { data: purchasesData, isLoading } = useQuery({
-    queryKey: ['purchases', { page, search, paymentStatus, purchaseStatus, dateFrom, dateTo }],
-    queryFn: () =>
-      purchasesApi.getPurchases({
-        page,
-        search: search || undefined,
-        payment_status: paymentStatus || undefined,
-        purchase_status: purchaseStatus || undefined,
-        date_from: dateFrom || undefined,
-        date_to: dateTo || undefined,
-        per_page: 15,
-      }),
-  });
+  // Data state
+  const [purchasesData, setPurchasesData] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [suppliers, setSuppliers] = useState([]);
+  const [productsData, setProductsData] = useState(null);
+  const [isSavingPurchase, setIsSavingPurchase] = useState(false);
 
-  const { data: suppliers = [] } = useQuery({
-    queryKey: ['quick-suppliers'],
-    queryFn: () => suppliersApi.getQuickList(),
-  });
+  const refreshPurchases = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      setPurchasesData(
+        await purchasesApi.getPurchases({
+          page,
+          search: search || undefined,
+          payment_status: paymentStatus || undefined,
+          purchase_status: purchaseStatus || undefined,
+          date_from: dateFrom || undefined,
+          date_to: dateTo || undefined,
+          per_page: 15,
+        })
+      );
+    } catch {
+      setPurchasesData(null);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [page, search, paymentStatus, purchaseStatus, dateFrom, dateTo]);
 
-  const { data: productsData } = useQuery({
-    queryKey: ['all-products-for-purchase'],
-    queryFn: () => productsApi.getProducts({ per_page: 250 }),
-  });
+  const refreshSuppliers = useCallback(async () => {
+    try {
+      setSuppliers(await suppliersApi.getQuickList());
+    } catch {
+      setSuppliers([]);
+    }
+  }, []);
 
-  // Mutations
-  const createPurchaseMutation = useMutation({
-    mutationFn: purchasesApi.createPurchase,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['purchases'] });
-      queryClient.invalidateQueries({ queryKey: ['products'] });
-      queryClient.invalidateQueries({ queryKey: ['products-metrics'] });
-      queryClient.invalidateQueries({ queryKey: ['stock-movements'] });
-      queryClient.invalidateQueries({ queryKey: ['suppliers'] });
+  const refreshProducts = useCallback(async () => {
+    try {
+      setProductsData(await productsApi.getProducts({ per_page: 250 }));
+    } catch {
+      setProductsData(null);
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshPurchases();
+  }, [refreshPurchases]);
+
+  useEffect(() => {
+    refreshSuppliers();
+    refreshProducts();
+  }, [refreshProducts, refreshSuppliers]);
+
+  const handleSavePurchase = async (payload) => {
+    setIsSavingPurchase(true);
+    try {
+      await purchasesApi.createPurchase(payload);
+      await Promise.all([refreshPurchases(), refreshProducts(), refreshSuppliers()]);
       toast.success('تم تسجيل فاتورة المشتريات وزيادة المخزون بنجاح');
       setIsPurchaseModalOpen(false);
-    },
-    onError: (err: any) => {
+    } catch (err) {
       toast.error(err.response?.data?.message || 'فشلت إضافة فاتورة المشتريات');
-    },
-  });
-
-  const voidMutation = useMutation({
-    mutationFn: ({ id, reason }: { id: number; reason: string }) => purchasesApi.voidPurchase(id, reason),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['purchases'] });
-      queryClient.invalidateQueries({ queryKey: ['products'] });
-      queryClient.invalidateQueries({ queryKey: ['products-metrics'] });
-      queryClient.invalidateQueries({ queryKey: ['stock-movements'] });
-      queryClient.invalidateQueries({ queryKey: ['suppliers'] });
-      toast.success('تم إلغاء فاتورة المشتريات وعكس رصيد المخزون بنجاح');
-    },
-    onError: (err: any) => {
-      toast.error(err.response?.data?.message || 'فشل إلغاء فاتورة الشراء');
-    },
-  });
-
-  const handleSavePurchase = async (payload: CreatePurchasePayload) => {
-    await createPurchaseMutation.mutateAsync(payload);
+    } finally {
+      setIsSavingPurchase(false);
+    }
   };
 
-  const handleVoidPurchase = async (purchase: Purchase) => {
+  const handleVoidPurchase = async (purchase) => {
     const reason = window.prompt(`يرجى كتابة سبب إلغاء فاتورة المشتريات (${purchase.purchase_number}):`);
     if (reason && reason.trim()) {
-      await voidMutation.mutateAsync({ id: purchase.id, reason: reason.trim() });
+      try {
+        await purchasesApi.voidPurchase(purchase.id, reason.trim());
+        await Promise.all([refreshPurchases(), refreshProducts(), refreshSuppliers()]);
+        toast.success('تم إلغاء فاتورة المشتريات وعكس رصيد المخزون بنجاح');
+      } catch (err) {
+        toast.error(err.response?.data?.message || 'فشل إلغاء فاتورة الشراء');
+      }
     }
   };
 
@@ -438,7 +447,7 @@ export const PurchasesPage: React.FC = () => {
           suppliers={suppliers}
           products={productsData?.data || []}
           onSave={handleSavePurchase}
-          isLoading={createPurchaseMutation.isPending}
+          isLoading={isSavingPurchase}
         />
       )}
     </div>

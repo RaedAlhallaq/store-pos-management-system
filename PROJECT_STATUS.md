@@ -7,7 +7,7 @@ Store POS and management system with a React/Vite frontend and Laravel REST API 
 ## Current technology stack
 
 - Frontend: React 19, JavaScript foundation, Vite 8, Tailwind CSS 4, Axios, React Router 7, React Hook Form, Zod, Sonner, and Lucide.
-- Remaining frontend migration work: 43 `.ts`/`.tsx` UI and feature files; 4 untouched feature pages still use TanStack Query.
+- Remaining frontend migration work: 39 `.ts`/`.tsx` UI and feature files; 3 untouched feature pages still use TanStack Query.
 - Backend: Laravel 13.29, PHP 8.4.23, Laravel Sanctum 4, REST API, Eloquent services/resources/form requests.
 - Intended runtime database: MySQL/MariaDB. Environment examples specify MySQL.
 
@@ -17,8 +17,8 @@ TypeScript, TanStack Query, Redux, Zustand, SQLite, Redis, Docker, GraphQL, and 
 
 ## Current phase and task
 
-- Current phase: **PHASE 1F - Inventory Migration**
-- Current task: Inventory migration is complete and verified.
+- Current phase: **PHASE 1G - Purchases Migration**
+- Current task: Purchases migration is complete and verified.
 
 ## Completed work
 
@@ -32,6 +32,7 @@ TypeScript, TanStack Query, Redux, Zustand, SQLite, Redis, Docker, GraphQL, and 
 - Removed the obsolete empty POS type compatibility module after confirming no source imports remained.
 - Migrated the complete Products feature to JavaScript/JSX: page, API module, filter bar, product modal, category modal, unit modal, and stock-adjustment modal. Replaced its four queries and four mutations with local React state/effects and explicit Axios-backed refresh functions, and deleted the Products type module.
 - Migrated the Inventory feature to `InventoryPage.jsx`. Replaced its stock-movements, metrics, and product-select queries and its stock-adjustment mutation with local React state/effects over the existing Axios `productsApi`, and removed its type-only Products import. The page reuses the migrated Products `StockAdjustmentModal`.
+- Migrated the complete Purchases feature to JavaScript/JSX: page, API module, and purchase modal. Replaced its purchases-list, quick-suppliers, and product-select queries and its create and void mutations with local React state/effects and explicit Axios-backed refresh functions, and deleted the Purchases type module.
 - Preserved existing user changes in SaleController, StoreSaleRequest, SaleService, SaleApiTest, PosPage, and docs/architecture.md.
 
 ## Verified functionality
@@ -44,6 +45,7 @@ TypeScript, TanStack Query, Redux, Zustand, SQLite, Redis, Docker, GraphQL, and 
 - `frontend`: Phase 1D `npm.cmd install`, lint, and build passed; Sales has no TypeScript file or TanStack Query import, and the extensionless router import resolves `SalesPage.jsx`.
 - `frontend`: Phase 1E `npm install`, lint (11 warnings, no errors), and build passed; Products has no TypeScript file and no TanStack Query import or usage, and the extensionless router import resolves `ProductsPage.jsx`.
 - `frontend`: Phase 1F `npm install`, lint (13 warnings, no errors), and build passed; Inventory has no TypeScript file and no TanStack Query import or usage, and the extensionless router import resolves `InventoryPage.jsx`.
+- `frontend`: Phase 1G `npm install`, lint (15 warnings, no errors), and build passed; Purchases has no TypeScript file and no TanStack Query import or usage, the extensionless router import resolves `PurchasesPage.jsx`, and the Dashboard's `purchasesApi` import resolves `purchasesApi.js`.
 - `backend`: Laravel booted; 66 API routes listed; tests passed 36/36 with an ephemeral test-only `APP_KEY` and the configured in-memory SQLite test database.
 
 ## Unverified functionality
@@ -52,12 +54,12 @@ TypeScript, TanStack Query, Redux, Zustand, SQLite, Redis, Docker, GraphQL, and 
 
 ## Known issues
 
-1. 43 `.ts`/`.tsx` files remain in UI and feature modules. They are intentionally out of scope for Phase 1F.
-2. TanStack Query remains a direct dependency because four untouched feature pages still import it: Purchases, Customers, Suppliers, and Expenses.
-3. Frontend lint has 13 warnings: ten `set-state-in-effect`, two Fast Refresh export warnings, and one React Hook Form compatibility warning.
-7. Seven still-TypeScript files in other features keep type-only imports of the deleted `products/types/productTypes` module (`purchases` x3, `customers`, `suppliers`, `expenses`, `daily-closing`). These imports are erased at build time, so install, lint, and the production build pass; each one disappears when its own feature is migrated.
-8. Products and Inventory no longer share a query cache, so a stock adjustment made on one page is not pushed into the other. Each page refreshes its own list and metrics after its own adjustment and reloads on mount.
-9. `frontend/src/features/sales/pages/SalesPage.jsx` contains double-encoded (mojibake) Arabic strings introduced before Phase 1E. Its UI text renders incorrectly. Out of scope for Phase 1E; fix during a Sales follow-up.
+1. 39 `.ts`/`.tsx` files remain in UI and feature modules. They are intentionally out of scope for Phase 1G.
+2. TanStack Query remains a direct dependency because three untouched feature pages still import it: Customers, Suppliers, and Expenses.
+3. Frontend lint has 15 warnings: twelve `set-state-in-effect`, two Fast Refresh export warnings, and one React Hook Form compatibility warning.
+7. Four still-TypeScript files in other features keep type-only imports of the deleted `products/types/productTypes` module (`customers`, `suppliers`, `expenses`, `daily-closing`). These imports are erased at build time, so install, lint, and the production build pass; each one disappears when its own feature is migrated.
+8. Migrated pages no longer share a query cache. A stock adjustment or a purchase recorded on one page is not pushed into the other pages' already-rendered data; each page refreshes its own lists and metrics after its own mutations and reloads on mount.
+9. `frontend/src/features/sales/pages/SalesPage.jsx` contains double-encoded (mojibake) Arabic strings introduced before Phase 1E. Its UI text renders incorrectly. Left untouched by explicit instruction; fix during a Sales follow-up.
 10. `npm.cmd` is Windows-only. On the Linux verification machine the equivalent `npm install`, `npm run lint`, and `npm run build` were used, plus the Linux-only `@oxlint/binding-linux-x64-gnu` and `@rolldown/binding-linux-x64-gnu` optional binaries, installed with `--no-save --no-package-lock` so `package.json` and `package-lock.json` stayed unchanged.
 4. Vite warns that the generated JavaScript chunk is 755.90 kB before gzip, above its default 500 kB threshold.
 5. Laravel defaults to SQLite without `backend/.env`, and config retains SQLite/Redis definitions. PHPUnit deliberately uses in-memory SQLite. This requires a Phase 2 MySQL/test-strategy decision.
@@ -75,4 +77,4 @@ TypeScript, TanStack Query, Redux, Zustand, SQLite, Redis, Docker, GraphQL, and 
 
 ## Exact next task
 
-PHASE 1G - Purchases feature migration only: convert `frontend/src/features/purchases/**` (page, API module, purchase modal, and type module) from TypeScript and TanStack Query to JavaScript with local React/Axios state, then rerun frontend install, lint, build, and remaining-usage searches. Do not modify other feature modules.
+PHASE 1H - Customers feature migration only: convert `frontend/src/features/customers/**` from TypeScript and TanStack Query to JavaScript with local React/Axios state, removing its type-only `productTypes` import, then rerun frontend install, lint, build, and remaining-usage searches. Do not modify other feature modules.

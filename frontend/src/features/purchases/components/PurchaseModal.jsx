@@ -1,33 +1,12 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Modal } from '../../../components/ui/Modal';
 import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
 import { Button } from '../../../components/ui/Button';
 import { Plus, Trash2, Check, ShoppingBag } from 'lucide-react';
-import type { Supplier } from '../../suppliers/types/supplierTypes';
-import type { Product } from '../../products/types/productTypes';
-import type { CreatePurchasePayload } from '../types/purchaseTypes';
 import { toast } from 'sonner';
 
-interface PurchaseModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  suppliers: Supplier[];
-  products: Product[];
-  onSave: (payload: CreatePurchasePayload) => Promise<void>;
-  isLoading?: boolean;
-}
-
-interface PurchaseRowItem {
-  product_id: number;
-  product_name: string;
-  quantity: number;
-  unit_cost: number;
-  selling_price: number;
-  tax_percent: number;
-}
-
-export const PurchaseModal: React.FC<PurchaseModalProps> = ({
+export const PurchaseModal = ({
   isOpen,
   onClose,
   suppliers,
@@ -35,15 +14,15 @@ export const PurchaseModal: React.FC<PurchaseModalProps> = ({
   onSave,
   isLoading = false,
 }) => {
-  const [supplierId, setSupplierId] = useState<string>(suppliers[0]?.id ? String(suppliers[0].id) : '');
+  const [supplierId, setSupplierId] = useState(suppliers[0]?.id ? String(suppliers[0].id) : '');
   const [supplierInvoiceNumber, setSupplierInvoiceNumber] = useState('');
   const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().split('T')[0]);
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'bank_transfer' | 'credit'>('cash');
+  const [paymentMethod, setPaymentMethod] = useState('cash');
   const [discountAmount, setDiscountAmount] = useState('0.00');
   const [notes, setNotes] = useState('');
 
   // Items table
-  const [items, setItems] = useState<PurchaseRowItem[]>([
+  const [items, setItems] = useState([
     {
       product_id: products[0]?.id || 0,
       product_name: products[0]?.name || '',
@@ -69,7 +48,7 @@ export const PurchaseModal: React.FC<PurchaseModalProps> = ({
     ]);
   };
 
-  const handleRemoveItemRow = (index: number) => {
+  const handleRemoveItemRow = (index) => {
     if (items.length <= 1) {
       toast.error('يجب أن تحتوي الفاتورة على صنف واحد على الأقل');
       return;
@@ -77,7 +56,7 @@ export const PurchaseModal: React.FC<PurchaseModalProps> = ({
     setItems((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleProductChange = (index: number, productId: number) => {
+  const handleProductChange = (index, productId) => {
     const found = products.find((p) => p.id === productId);
     if (!found) return;
 
@@ -97,7 +76,7 @@ export const PurchaseModal: React.FC<PurchaseModalProps> = ({
     );
   };
 
-  const handleItemFieldChange = (index: number, field: keyof PurchaseRowItem, value: number) => {
+  const handleItemFieldChange = (index, field, value) => {
     setItems((prev) =>
       prev.map((item, i) => (i === index ? { ...item, [field]: value } : item))
     );
@@ -112,7 +91,7 @@ export const PurchaseModal: React.FC<PurchaseModalProps> = ({
   const discountNum = Number(discountAmount || 0);
   const grandTotal = Math.max(0, calculatedSubtotal + calculatedTax - discountNum);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (paymentMethod === 'credit' && !supplierId) {
@@ -120,7 +99,7 @@ export const PurchaseModal: React.FC<PurchaseModalProps> = ({
       return;
     }
 
-    const payload: CreatePurchasePayload = {
+    const payload = {
       supplier_id: supplierId ? Number(supplierId) : null,
       supplier_invoice_number: supplierInvoiceNumber.trim() || undefined,
       invoice_date: invoiceDate,
@@ -294,7 +273,7 @@ export const PurchaseModal: React.FC<PurchaseModalProps> = ({
             <Select
               label="طريقة السداد للمورد *"
               value={paymentMethod}
-              onChange={(e) => setPaymentMethod(e.target.value as any)}
+              onChange={(e) => setPaymentMethod(e.target.value)}
               options={[
                 { value: 'cash', label: 'نقداً من الصندوق (Cash)' },
                 { value: 'bank_transfer', label: 'حوالة بنكية' },

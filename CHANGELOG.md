@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-09-01 - PHASE 1G - Purchases Migration
+
+- Task: migrate the Purchases feature from TypeScript and TanStack Query to JavaScript and local React/Axios state.
+- Changes: replaced `purchasesApi.ts`, `PurchaseModal.tsx`, and `PurchasesPage.tsx` with `.js`/`.jsx` counterparts and deleted `types/purchaseTypes.ts`; replaced the purchases-list, quick-suppliers, and product-select queries and the create and void mutations with local state, effects, and explicit refresh functions over the existing Axios client.
+- Preserved: search, payment-status, purchase-status and date-range filters with page reset, filter reset, pagination, KPI cards, invoice table and badges, purchase creation with the multi-item table and its cost/tax/discount/grand-total calculations, the credit-requires-supplier guard, void with its reason prompt, toasts, loading and empty states, routes, Arabic/RTL text, styling, and all API endpoints, payloads, and response handling.
+- Behavior note: creating or voiding a purchase no longer invalidates the Products/Inventory query caches; Purchases refreshes its own lists and the other pages reload on their own next load.
+- Verification: `npm install`, lint (15 warnings, no errors), and production build passed. Purchases has no TypeScript file and no TanStack Query import or usage, and no `purchaseTypes` reference remains. Remaining TypeScript: 39 files. Remaining TanStack Query: 3 feature areas.
+
 ## 2026-09-01 - PHASE 1F - Inventory Migration
 
 - Task: migrate the Inventory feature from TypeScript and TanStack Query to JavaScript and local React/Axios state.

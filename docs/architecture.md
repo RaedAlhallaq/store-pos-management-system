@@ -32,6 +32,8 @@ The **Local POS & Store Management System** is an offline-first, high-performanc
 
 ### 2.2. Authoritative Financial & Inventory Calculations
 - **Backend Calculation Authority:** The frontend never performs authoritative balance or inventory calculations. All totals, taxes, discounts, profit margins, and remaining debts are calculated and committed within transactional boundaries in the backend service layer.
+- **Server-authoritative selling price:** Sale line prices always come from the locked `products.selling_price` row. Client-provided `items.*.unit_price` is accepted for compatibility and ignored.
+- **Server-side availability:** Inactive products cannot be sold. Requested quantity is checked against `stock_quantity` after `lockForUpdate()`; insufficient stock rejects the entire sale with HTTP 422 and rolls back the transaction.
 - **Precision Monetary Types:** All monetary calculations use `DECIMAL(12,2)` in MySQL to prevent floating-point rounding inaccuracies.
 - **Audit Trails & Non-Destructive Mutations:** Financial transactions (Sales, Debts, Payments, Cash Closings) are never permanently deleted. Reversals and cancellations use void/cancel operations with detailed audit logs.
 

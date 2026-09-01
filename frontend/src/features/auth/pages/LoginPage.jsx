@@ -1,7 +1,17 @@
+import { useEffect, useState } from 'react';
 import { Store, ShieldCheck } from 'lucide-react';
 import { LoginForm } from '../components/LoginForm';
+import { settingsApi } from '../../settings/api/settingsApi';
 
 export function LoginPage() {
+  const [storeName, setStoreName] = useState('نظام إدارة المبيعات');
+
+  useEffect(() => {
+    settingsApi.getSettings().then((s) => {
+      setStoreName(s.store_name || 'نظام إدارة المبيعات');
+    }).catch(() => {});
+  }, []);
+
   return (
     <div className="min-h-screen flex flex-col justify-center items-center p-4 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 relative overflow-hidden" dir="rtl">
       {/* Subtle background glow effect */}
@@ -14,7 +24,7 @@ export function LoginPage() {
             <Store className="w-8 h-8" />
           </div>
           <h1 className="text-2xl font-bold text-slate-100">
-            الأصيل للمنظفات
+            {storeName}
           </h1>
           <p className="text-sm text-slate-400 mt-1">نظام إدارة المبيعات والمخزون والحسابات</p>
         </div>

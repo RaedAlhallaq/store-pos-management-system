@@ -5,7 +5,7 @@ import * as z from 'zod';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
-import { Mail, Lock, LogIn } from 'lucide-react';
+import { Mail, Lock, LogIn, Eye, EyeOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const loginSchema = z.object({
@@ -15,13 +15,14 @@ const loginSchema = z.object({
     .email({ message: 'صيغة البريد الإلكتروني غير صحيحة' }),
   password: z
     .string()
-    .min(6, { message: 'كلمة المرور يجب أن لا تقل عن 6 أحرف' }),
+    .min(1, { message: 'كلمة المرور مطلوبة' }),
 });
 
 export function LoginForm() {
   const { login } = useAuth();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const {
     register,
@@ -30,8 +31,8 @@ export function LoginForm() {
   } = useForm({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: 'owner@storepos.local',
-      password: 'password123',
+      email: '',
+      password: '',
     },
   });
 
@@ -60,16 +61,26 @@ export function LoginForm() {
         {...register('email')}
       />
 
-      <Input
-        label="كلمة المرور"
-        type="password"
-        placeholder="••••••••"
-        dir="ltr"
-        className="text-left"
-        rightIcon={<Lock className="w-4 h-4 text-slate-400" />}
-        error={errors.password?.message}
-        {...register('password')}
-      />
+      <div className="relative">
+        <Input
+          label="كلمة المرور"
+          type={showPassword ? 'text' : 'password'}
+          placeholder="••••••••"
+          dir="ltr"
+          className="text-left pr-10"
+          rightIcon={<Lock className="w-4 h-4 text-slate-400" />}
+          error={errors.password?.message}
+          {...register('password')}
+        />
+        <button
+          type="button"
+          onClick={() => setShowPassword(!showPassword)}
+          className="absolute left-10 top-[38px] text-slate-400 hover:text-slate-200 transition-colors z-10"
+          tabIndex={-1}
+        >
+          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+        </button>
+      </div>
 
       <div className="pt-2">
         <Button
@@ -81,13 +92,6 @@ export function LoginForm() {
         >
           تسجيل الدخول للنظام
         </Button>
-      </div>
-
-      <div className="mt-4 p-3 bg-slate-900/80 border border-slate-800 rounded-xl text-center text-xs text-slate-400 space-y-1">
-        <p className="font-semibold text-brand-400">حساب المدير الافتراضي:</p>
-        <p dir="ltr" className="font-mono text-slate-300">
-          owner@storepos.local | password123
-        </p>
       </div>
     </form>
   );

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { settingsApi } from '../../settings/api/settingsApi';
 import {
   AlertTriangle,
   Banknote,
@@ -70,6 +71,11 @@ export function DashboardPage() {
   const today = new Date().toISOString().slice(0, 10);
   const [isLoading, setIsLoading] = useState(true);
   const [dashboardData, setDashboardData] = useState({});
+  const [storeName, setStoreName] = useState('نظام إدارة المبيعات');
+
+  useEffect(() => {
+    settingsApi.getSettings().then((s) => setStoreName(s.store_name || 'نظام إدارة المبيعات')).catch(() => {});
+  }, []);
 
   useEffect(() => {
     let isCurrent = true;
@@ -154,7 +160,7 @@ export function DashboardPage() {
           <div>
             <h1 className="text-2xl md:text-3xl font-extrabold text-slate-100">مرحباً، {user?.name || 'مدير المحل'} 👋</h1>
             <p className="text-sm text-slate-400 mt-1">
-              الأصيل للمنظفات — {new Date().toLocaleDateString('ar-SA', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+              {storeName} — {new Date().toLocaleDateString('ar-SA', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
             </p>
           </div>
           <Link to="/pos">

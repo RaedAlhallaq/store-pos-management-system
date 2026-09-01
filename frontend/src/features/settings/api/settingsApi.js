@@ -1,5 +1,5 @@
 import { db } from '../../../data/db';
-import { ensureReady, money, nowIso } from '../../../data/runtime';
+import { ensureReady, nowIso } from '../../../data/runtime';
 import { defaultSettings } from '../../../data/seed';
 
 export const settingsApi = {
@@ -42,7 +42,7 @@ export const settingsApi = {
           const payload = JSON.parse(e.target.result);
           await db.importAll(payload);
           resolve({ success: true, message: 'تمت استعادة النسخة الاحتياطية بنجاح.' });
-        } catch (err) {
+        } catch {
           reject(new Error('ملف النسخة الاحتياطية غير صالح.'));
         }
       };

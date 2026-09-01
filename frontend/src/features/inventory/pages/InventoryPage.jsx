@@ -1,5 +1,4 @@
-import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useEffect, useState } from 'react';
 import { productsApi } from '../../products/api/productsApi';
 import { StockAdjustmentModal } from '../../products/components/StockAdjustmentModal';
 import { Card } from '../../../components/ui/Card';
@@ -19,46 +18,62 @@ import {
   DollarSign,
   Boxes,
 } from 'lucide-react';
-import type { Product, StockMovement } from '../../products/types/productTypes';
 
-export const InventoryPage: React.FC = () => {
-  const queryClient = useQueryClient();
+export const InventoryPage = () => {
   const [page, setPage] = useState(1);
-  const [selectedType, setSelectedType] = useState<string>('');
-  const [adjustingProduct, setAdjustingProduct] = useState<Product | null>(null);
+  const [selectedType, setSelectedType] = useState('');
+  const [adjustingProduct, setAdjustingProduct] = useState(null);
 
-  // Queries
-  const { data: movementsData, isLoading: isMovementsLoading } = useQuery({
-    queryKey: ['stock-movements', { page, type: selectedType }],
-    queryFn: () => productsApi.getStockMovements({ page, type: selectedType || undefined, per_page: 15 }),
-  });
+  // Data state
+  const [movementsData, setMovementsData] = useState(null);
+  const [isMovementsLoading, setIsMovementsLoading] = useState(true);
+  const [metrics, setMetrics] = useState(null);
+  const [productsData, setProductsData] = useState(null);
 
-  const { data: metrics } = useQuery({
-    queryKey: ['products-metrics'],
-    queryFn: () => productsApi.getMetrics(),
-  });
+  const refreshMovements = useCallback(async () => {
+    setIsMovementsLoading(true);
+    try {
+      setMovementsData(
+        await productsApi.getStockMovements({ page, type: selectedType || undefined, per_page: 15 })
+      );
+    } catch {
+      setMovementsData(null);
+    } finally {
+      setIsMovementsLoading(false);
+    }
+  }, [page, selectedType]);
 
-  const { data: productsData } = useQuery({
-    queryKey: ['all-products-select'],
-    queryFn: () => productsApi.getProducts({ per_page: 100 }),
-  });
+  const refreshMetrics = useCallback(async () => {
+    try {
+      setMetrics(await productsApi.getMetrics());
+    } catch {
+      setMetrics(null);
+    }
+  }, []);
 
-  const adjustStockMutation = useMutation({
-    mutationFn: ({
-      productId,
-      data,
-    }: {
-      productId: number;
-      data: { type: string; quantity: number; notes?: string };
-    }) => productsApi.adjustStock(productId, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['stock-movements'] });
-      queryClient.invalidateQueries({ queryKey: ['products'] });
-      queryClient.invalidateQueries({ queryKey: ['products-metrics'] });
-    },
-  });
+  const refreshProducts = useCallback(async () => {
+    try {
+      setProductsData(await productsApi.getProducts({ per_page: 100 }));
+    } catch {
+      setProductsData(null);
+    }
+  }, []);
 
-  const getTypeBadge = (type: StockMovement['type']) => {
+  useEffect(() => {
+    refreshMovements();
+  }, [refreshMovements]);
+
+  useEffect(() => {
+    refreshMetrics();
+    refreshProducts();
+  }, [refreshMetrics, refreshProducts]);
+
+  const handleAdjustStock = async (productId, data) => {
+    await productsApi.adjustStock(productId, data);
+    await Promise.all([refreshMovements(), refreshMetrics(), refreshProducts()]);
+  };
+
+  const getTypeBadge = (type) => {
     switch (type) {
       case 'initial':
         return <Badge variant="info">رصيد افتتاحي</Badge>;
@@ -328,9 +343,7 @@ export const InventoryPage: React.FC = () => {
           isOpen={!!adjustingProduct}
           onClose={() => setAdjustingProduct(null)}
           product={adjustingProduct}
-          onAdjust={async (productId, data) => {
-            await adjustStockMutation.mutateAsync({ productId, data });
-          }}
+          onAdjust={handleAdjustStock}
         />
       )}
     </div>

@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-09-01 - PHASE 1F - Inventory Migration
+
+- Task: migrate the Inventory feature from TypeScript and TanStack Query to JavaScript and local React/Axios state.
+- Changes: replaced `InventoryPage.tsx` with `InventoryPage.jsx`; replaced the stock-movements, metrics, and product-select queries and the stock-adjustment mutation with local state, effects, and explicit refresh functions over the existing Axios `productsApi`; removed the page's type-only Products import.
+- Preserved: ledger listing, movement-type filter with page reset, pagination, KPI cards, movement badges, quick stock adjustment through the Products `StockAdjustmentModal`, loading and empty states, Arabic/RTL text, styling, routes, and all API payloads and response handling.
+- Behavior note: Products and Inventory no longer share a query cache, so an adjustment on one page is not pushed into the other; each refreshes its own data after its own adjustment and on mount.
+- Verification: `npm install`, lint (13 warnings, no errors), and production build passed. Inventory has no TypeScript file and no TanStack Query import or usage. Remaining TypeScript: 43 files. Remaining TanStack Query: 4 feature areas.
+
 ## 2026-09-01 - PHASE 1E - Products Migration
 
 - Task: migrate the Products feature from TypeScript and TanStack Query to JavaScript and local React/Axios state.

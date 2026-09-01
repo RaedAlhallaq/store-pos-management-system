@@ -3,6 +3,7 @@ import { CheckCircle2, Clock, LogOut, Menu, RefreshCw, Store, User as UserIcon, 
 import { Button } from '../../components/ui/Button';
 import { useAuth } from '../../features/auth/context/AuthContext';
 import { useBackendHealth } from '../../hooks/useBackendHealth';
+import { settingsApi } from '../../features/settings/api/settingsApi';
 
 function ConnectionDot() {
   const { data, isError, isFetching, isLoading, refresh } = useBackendHealth();
@@ -28,6 +29,11 @@ function ConnectionDot() {
 export function Header({ onToggleSidebar }) {
   const { user, logout } = useAuth();
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [storeName, setStoreName] = useState('نظام إدارة المحل');
+
+  useEffect(() => {
+    settingsApi.getSettings().then((s) => setStoreName(s.store_name || 'نظام إدارة المحل')).catch(() => {});
+  }, []);
 
   useEffect(() => {
     const timer = window.setInterval(() => setCurrentTime(new Date()), 1000);
@@ -43,7 +49,7 @@ export function Header({ onToggleSidebar }) {
         <div className="hidden sm:flex items-center gap-2">
           <div className="p-2 rounded-xl bg-brand-500/10 text-brand-400 border border-brand-500/20"><Store className="w-4 h-4" /></div>
           <div>
-            <h2 className="text-sm font-bold text-slate-100 leading-tight">الأصيل للمنظفات</h2>
+            <h2 className="text-sm font-bold text-slate-100 leading-tight truncate max-w-[200px]">{storeName}</h2>
             <p className="text-[10px] text-slate-400">نظام إدارة المحل</p>
           </div>
         </div>

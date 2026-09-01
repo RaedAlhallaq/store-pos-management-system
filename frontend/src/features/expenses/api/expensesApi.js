@@ -45,7 +45,13 @@ export const expensesApi = {
       });
     }
     items.sort((a, b) => b.id - a.id);
-    return paginate(items, params.page, params.per_page || 15);
+
+    // Compute grand total across ALL matching expenses (not just current page)
+    const grandTotal = items.reduce((sum, e) => sum + money(e.amount), 0);
+
+    const result = paginate(items, params.page, params.per_page || 15);
+    result.meta.grand_total = money(grandTotal);
+    return result;
   },
 
   async createExpense(payload) {
@@ -66,6 +72,25 @@ export const expensesApi = {
       user_name: user.name,
       created_at: now,
     });
+    const categories = await db.getAll('expenseCategories');
+    return formatExpense(await db.get('expenses', id), categories);
+  },
+
+  async updateExpense(id, payload) {
+    await ensureReady();
+    const expense = await db.get('expenses', id);
+    if (!expense) apiError('المصروف غير موجود.');
+    const updated = {
+      ...expense,
+      expense_category_id: payload.expense_category_id ?? expense.expense_category_id,
+      description: payload.description ?? expense.description,
+      amount: money(payload.amount ?? expense.amount),
+      payment_method: payload.payment_method ?? expense.payment_method,
+      expense_date: payload.expense_date ?? expense.expense_date,
+      reference_number: payload.reference_number ?? expense.reference_number,
+      notes: payload.notes ?? expense.notes,
+    };
+    await db.put('expenses', updated);
     const categories = await db.getAll('expenseCategories');
     return formatExpense(await db.get('expenses', id), categories);
   },

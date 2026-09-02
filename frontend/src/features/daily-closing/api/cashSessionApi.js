@@ -155,12 +155,12 @@ export const cashSessionApi = {
       (sum, s) => sum + (s.payments || []).filter((p) => p.payment_method === 'cash').reduce((ps, p) => ps + money(p.amount), 0),
       0
     );
-    const totalSalesCard = sales.reduce(
-      (sum, s) => sum + (s.payments || []).filter((p) => p.payment_method === 'card').reduce((ps, p) => ps + money(p.amount), 0),
+    const totalSalesElectronic = sales.reduce(
+      (sum, s) => sum + (s.payments || []).filter((p) => p.payment_method !== 'cash' && p.payment_method !== 'credit').reduce((ps, p) => ps + money(p.amount), 0),
       0
     );
     const totalSalesCredit = sales.reduce((sum, s) => sum + money(s.due_amount), 0);
-    const totalTax = sales.reduce((sum, s) => sum + money(s.tax_amount), 0);
+
     const totalDiscounts = sales.reduce((sum, s) => sum + money(s.discount_amount), 0);
 
     const movements = session.movements || [];
@@ -196,9 +196,9 @@ export const cashSessionApi = {
       sales_count: sales.length,
       total_sales: money(totalSales),
       total_sales_cash: money(totalSalesCash),
-      total_sales_card: money(totalSalesCard),
+      total_sales_card: money(totalSalesElectronic),
       total_sales_credit: money(totalSalesCredit),
-      total_tax: money(totalTax),
+
       total_discounts: money(totalDiscounts),
       opening_cash: money(session.opening_cash),
       total_cash_in: money(totalCashIn),

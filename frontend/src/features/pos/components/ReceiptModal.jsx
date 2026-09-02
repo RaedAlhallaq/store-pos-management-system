@@ -1,19 +1,31 @@
 import { useEffect, useRef, useState } from 'react';
-import { CheckCircle2, Printer, QrCode, Store } from 'lucide-react';
+import { CheckCircle2, Printer, Store } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 import { Modal } from '../../../components/ui/Modal';
 import { settingsApi } from '../../settings/api/settingsApi';
 
+const PAYMENT_LABELS = {
+  cash: 'نقداً',
+  bank_of_palestine: 'بنك فلسطين',
+  palpay: 'PalPay',
+  jawwal_pay: 'Jawwal Pay',
+  credit: 'آجل على الحساب',
+};
+
+function getPaymentLabel(method) {
+  return PAYMENT_LABELS[method] || method;
+}
+
 export function ReceiptModal({ isOpen, onClose, sale, onNewSale }) {
   const printAreaRef = useRef(null);
-  const [settings, setSettings] = useState({ store_name: 'الأصيل للمنظفات', receipt_footer: 'شكراً لزيارتكم محل الأصيل للمنظفات!' });
+  const [settings, setSettings] = useState({ store_name: 'نظام إدارة المحل', receipt_footer: 'شكراً لزيارتكم!' });
 
   useEffect(() => {
     if (isOpen) {
       settingsApi.getSettings().then((s) => {
         setSettings({
-          store_name: s.store_name || 'الأصيل للمنظفات',
-          receipt_footer: s.receipt_footer || 'شكراً لزيارتكم محل الأصيل للمنظفات!',
+          store_name: s.store_name || 'نظام إدارة المحل',
+          receipt_footer: s.receipt_footer || 'شكراً لزيارتكم!',
         });
       }).catch(() => {});
     }
@@ -21,13 +33,11 @@ export function ReceiptModal({ isOpen, onClose, sale, onNewSale }) {
 
   if (!sale) return null;
 
-  // Calculate change for cash payments
   const paidAmount = Number(sale.paid_amount || 0);
   const grandTotal = Number(sale.grand_total || 0);
   const dueAmount = Number(sale.due_amount || 0);
   const change = sale.payment_method === 'cash' && paidAmount > grandTotal ? paidAmount - grandTotal : 0;
 
-  // Build payment method display
   const paymentMethods = sale.payments || [];
   const hasMultiplePayments = paymentMethods.length > 1;
 
@@ -119,7 +129,6 @@ export function ReceiptModal({ isOpen, onClose, sale, onNewSale }) {
                 <span>{dueAmount.toFixed(2)} ₪</span>
               </div>
             )}
-            {/* Payment method display */}
             {hasMultiplePayments ? (
               <div className="space-y-0.5">
                 <div className="flex justify-between text-slate-500 text-[10px]">
@@ -127,7 +136,7 @@ export function ReceiptModal({ isOpen, onClose, sale, onNewSale }) {
                 </div>
                 {paymentMethods.map((p, i) => (
                   <div key={i} className="flex justify-between text-slate-700 text-[10px]">
-                    <span>{p.payment_method === 'cash' ? 'نقداً' : p.payment_method === 'card' ? 'بطاقة' : 'آجل'}</span>
+                    <span>{getPaymentLabel(p.payment_method)}</span>
                     <span className="font-bold">{Number(p.amount).toFixed(2)} ₪</span>
                   </div>
                 ))}
@@ -135,18 +144,14 @@ export function ReceiptModal({ isOpen, onClose, sale, onNewSale }) {
             ) : (
               <div className="flex justify-between text-slate-500 text-[10px]">
                 <span>طريقة الدفع:</span>
-                <span className="font-bold">
-                  {sale.payment_method === 'cash' ? 'نقداً' : sale.payment_method === 'card' ? 'بطاقة / شبكة' : sale.payment_method === 'credit' ? 'آجل على الحساب' : 'دفع متعدد'}
-                </span>
+                <span className="font-bold">{getPaymentLabel(sale.payment_method)}</span>
               </div>
             )}
           </div>
 
           {/* Footer */}
           <div className="flex flex-col items-center justify-center pt-2 text-center space-y-1">
-            <div className="p-2 bg-slate-50 border border-slate-200 rounded-xl">
-              <QrCode className="w-14 h-14 text-slate-800" />
-            </div>
+            <Store className="w-10 h-10 text-slate-400" />
             <p className="text-[10px] text-slate-500">{settings.receipt_footer}</p>
           </div>
         </div>

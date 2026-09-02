@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { AlertCircle, Banknote, Check, Coins, CreditCard, Split, UserCheck, Wallet } from 'lucide-react';
+import { AlertCircle, Banknote, Check, Coins, Wallet, CreditCard, UserCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
@@ -9,16 +9,14 @@ import { Select } from '../../../components/ui/Select';
 export function PaymentModal({ isOpen, onClose, grandTotal, customer, customers, onSelectCustomer, onConfirmCheckout, isLoading = false }) {
   const [method, setMethod] = useState('cash');
   const [cashTendered, setCashTendered] = useState('');
-  const [cardAmount, setCardAmount] = useState('');
-  const [cardRefNumber, setCardRefNumber] = useState('');
+  const [refNumber, setRefNumber] = useState('');
   const [notes, setNotes] = useState('');
 
   useEffect(() => {
     if (isOpen) {
       setMethod('cash');
       setCashTendered(grandTotal.toFixed(2));
-      setCardAmount('');
-      setCardRefNumber('');
+      setRefNumber('');
       setNotes('');
     }
   }, [isOpen, grandTotal]);
@@ -31,32 +29,17 @@ export function PaymentModal({ isOpen, onClose, grandTotal, customer, customers,
       toast.error('يرجى تحديد عميل مسجل لإتمام عملية البيع الآجل.');
       return;
     }
-    const payments = [];
-    if (method === 'cash') {
-      payments.push({ payment_method: 'cash', amount: grandTotal });
-    } else if (method === 'card') {
-      payments.push({ payment_method: 'card', amount: grandTotal, reference_number: cardRefNumber || undefined });
-    } else if (method === 'credit') {
-      payments.push({ payment_method: 'credit', amount: grandTotal });
-    } else {
-      // Split payment
-      const cash = Number(cashTendered || 0);
-      const card = Number(cardAmount || 0);
-      if (cash + card < grandTotal) {
-        toast.error('مجموع الدفعات أقل من إجمالي الفاتورة المطلوب.');
-        return;
-      }
-      if (cash > 0) payments.push({ payment_method: 'cash', amount: cash });
-      if (card > 0) payments.push({ payment_method: 'card', amount: card, reference_number: cardRefNumber || undefined });
-    }
+    const payments = [{ payment_method: method, amount: grandTotal }];
+    if (refNumber) payments[0].reference_number = refNumber;
     await onConfirmCheckout({ customer_id: customer?.id || null, payments, notes: notes || undefined });
   };
 
   const methods = [
-    ['cash', Banknote, 'نقداً (Cash)', 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300 font-bold ring-2 ring-emerald-500/20'],
-    ['card', CreditCard, 'مدى / شبكة', 'bg-sky-500/20 border-sky-500/50 text-sky-300 font-bold ring-2 ring-sky-500/20'],
-    ['credit', UserCheck, 'آجل / ذمة', 'bg-amber-500/20 border-amber-500/50 text-amber-300 font-bold ring-2 ring-amber-500/20'],
-    ['split', Split, 'دفع مجزأ', 'bg-purple-500/20 border-purple-500/50 text-purple-300 font-bold ring-2 ring-purple-500/20'],
+    ['cash', Banknote, 'كاش', 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300 font-bold ring-2 ring-emerald-500/20'],
+    ['bank_of_palestine', CreditCard, 'بنك فلسطين', 'bg-sky-500/20 border-sky-500/50 text-sky-300 font-bold ring-2 ring-sky-500/20'],
+    ['palpay', Wallet, 'محفظة PalPay', 'bg-purple-500/20 border-purple-500/50 text-purple-300 font-bold ring-2 ring-purple-500/20'],
+    ['jawwal_pay', Wallet, 'محفظة Jawwal Pay', 'bg-amber-500/20 border-amber-500/50 text-amber-300 font-bold ring-2 ring-amber-500/20'],
+    ['credit', UserCheck, 'آجل / ذمة', 'bg-orange-500/20 border-orange-500/50 text-orange-300 font-bold ring-2 ring-orange-500/20'],
   ];
 
   return (
@@ -74,24 +57,18 @@ export function PaymentModal({ isOpen, onClose, grandTotal, customer, customers,
               <span className="text-sm font-bold text-slate-200 block truncate max-w-[150px]">{customer ? customer.name : 'عميل نقدي عام'}</span>
             </div>
           </div>
-          {/* Customer credit info */}
           {customer && (
             <div className="flex items-center gap-3 text-[11px] pt-2 border-t border-slate-800">
               <span className="flex items-center gap-1 text-slate-400">
                 <Wallet className="w-3 h-3" />
                 الرصيد: <span className={`font-mono font-bold ${Number(customer.current_balance) > 0 ? 'text-amber-400' : 'text-emerald-400'}`}>{Number(customer.current_balance).toFixed(2)} ₪</span>
               </span>
-              {Number(customer.credit_limit) > 0 && (
-                <span className="text-slate-500">
-                  السقف: <span className="font-mono">{Number(customer.credit_limit).toFixed(2)} ₪</span>
-                </span>
-              )}
             </div>
           )}
         </div>
 
         {/* Payment method selector */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
           {methods.map(([value, Icon, label, activeClass]) => (
             <button
               key={value}
@@ -115,7 +92,6 @@ export function PaymentModal({ isOpen, onClose, grandTotal, customer, customers,
               </span>
             </div>
             <Input type="number" step="0.5" placeholder="0.00" value={cashTendered} onChange={(event) => setCashTendered(event.target.value)} className="text-lg font-mono font-bold" />
-            {/* Prominent change display */}
             <div className={`p-3 rounded-xl flex items-center justify-between ${change > 0 ? 'bg-emerald-500/10 border border-emerald-500/30' : 'bg-slate-800/50 border border-slate-800'}`}>
               <span className={`text-xs font-bold ${change > 0 ? 'text-emerald-400' : 'text-slate-400'}`}>الباقي للعميل</span>
               <span className={`text-xl font-black font-mono ${change > 0 ? 'text-emerald-400' : 'text-slate-400'}`}>{change.toFixed(2)} ₪</span>
@@ -133,14 +109,14 @@ export function PaymentModal({ isOpen, onClose, grandTotal, customer, customers,
           </div>
         )}
 
-        {/* Card payment details */}
-        {method === 'card' && (
+        {/* Non-cash payment details */}
+        {method !== 'cash' && method !== 'credit' && (
           <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800 space-y-3">
             <div className="flex items-center gap-2 text-xs font-semibold text-sky-400">
               <CreditCard className="w-4 h-4" />
-              <span>دفع عبر أجهزة الدفع الإلكتروني</span>
+              <span>الدفع عبر {methods.find((m) => m[0] === method)?.[2]}</span>
             </div>
-            <Input label="رقم الإيصال / الرقم المرجعي للشبكة (اختياري)" placeholder="مثال: AUTH-987654" value={cardRefNumber} onChange={(event) => setCardRefNumber(event.target.value)} />
+            <Input label="رقم المرجعي / الإيصال (اختياري)" placeholder="أدخل الرقم المرجعي" value={refNumber} onChange={(event) => setRefNumber(event.target.value)} />
           </div>
         )}
 
@@ -157,7 +133,7 @@ export function PaymentModal({ isOpen, onClose, grandTotal, customer, customers,
               onChange={(event) => onSelectCustomer(customers.find((item) => item.id === Number(event.target.value)) || null)}
               options={customers.map((item) => ({
                 value: item.id,
-                label: `${item.name} (الرصيد: ${Number(item.current_balance).toFixed(2)} ₪ — سقف: ${Number(item.credit_limit).toFixed(2)} ₪)`,
+                label: `${item.name} (الرصيد: ${Number(item.current_balance).toFixed(2)} ₪)`,
               }))}
               placeholderOption="اختر عميل السجل..."
             />
@@ -167,28 +143,6 @@ export function PaymentModal({ isOpen, onClose, grandTotal, customer, customers,
                 <span>يجب اختيار عميل مسجل لتسجيل الفاتورة الآجلة</span>
               </p>
             )}
-          </div>
-        )}
-
-        {/* Split payment details */}
-        {method === 'split' && (
-          <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800 space-y-3">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <Input type="number" step="0.5" label="المدفوع نقداً (Cash)" placeholder="0.00" value={cashTendered} onChange={(event) => {
-                const cash = Number.parseFloat(event.target.value) || 0;
-                setCashTendered(event.target.value);
-                setCardAmount(Math.max(0, grandTotal - cash).toFixed(2));
-              }} />
-              <Input type="number" step="0.5" label="المدفوع عبر الشبكة (Card)" placeholder="0.00" value={cardAmount} onChange={(event) => setCardAmount(event.target.value)} />
-            </div>
-            {/* Split totals */}
-            <div className="p-2 rounded-lg bg-slate-800/50 flex items-center justify-between text-xs">
-              <span className="text-slate-400">المجموع المدفوع:</span>
-              <span className={`font-mono font-bold ${Number(cashTendered || 0) + Number(cardAmount || 0) >= grandTotal ? 'text-emerald-400' : 'text-amber-400'}`}>
-                {(Number(cashTendered || 0) + Number(cardAmount || 0)).toFixed(2)} ₪
-              </span>
-            </div>
-            <Input label="الرقم المرجعي للشبكة (اختياري)" placeholder="مثال: REF-1234" value={cardRefNumber} onChange={(event) => setCardRefNumber(event.target.value)} />
           </div>
         )}
 

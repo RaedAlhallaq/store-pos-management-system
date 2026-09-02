@@ -3,7 +3,7 @@ import { apiError } from '../../../data/errors';
 import { paginate } from '../../../data/paginate';
 import { ensureReady, money, nowIso, qty, requireUser } from '../../../data/runtime';
 
-function withRelations(product, categories, units) {
+function withRelations(product, categories) {
   const cost = money(product.cost_price);
   const sell = money(product.selling_price);
   const stock = qty(product.stock_quantity);
@@ -14,7 +14,6 @@ function withRelations(product, categories, units) {
     ...product,
     cost_price: cost.toFixed(2),
     selling_price: sell.toFixed(2),
-    tax_percent: money(product.tax_percent).toFixed(2),
     stock_quantity: stock.toFixed(3),
     min_stock_alert: min.toFixed(3),
     profit_margin: profit.toFixed(2),
@@ -22,23 +21,21 @@ function withRelations(product, categories, units) {
     is_low_stock: stock > 0 && stock <= min,
     is_out_of_stock: stock <= 0,
     category: categories.find((item) => item.id === product.category_id) || null,
-    unit: units.find((item) => item.id === product.unit_id) || null,
   };
 }
 
 export const productsApi = {
   async getProducts(filters = {}) {
     await ensureReady();
-    const [products, categories, units] = await Promise.all([
+    const [products, categories] = await Promise.all([
       db.getAll('products'),
       db.getAll('categories'),
-      db.getAll('units'),
     ]);
-    let rows = products.map((product) => withRelations(product, categories, units));
+    let rows = products.map((product) => withRelations(product, categories));
     if (filters.search) {
       const term = String(filters.search).toLowerCase();
       rows = rows.filter((product) =>
-        [product.name, product.barcode, product.sku].some((value) => String(value || '').toLowerCase().includes(term))
+        product.name.toLowerCase().includes(term)
       );
     }
     if (filters.category_id && filters.category_id !== 'all') {
@@ -58,17 +55,8 @@ export const productsApi = {
     await ensureReady();
     const product = await db.get('products', id);
     if (!product) apiError('المنتج غير موجود.');
-    const [categories, units] = await Promise.all([db.getAll('categories'), db.getAll('units')]);
-    return withRelations(product, categories, units);
-  },
-
-  async findByBarcode(barcode) {
-    await ensureReady();
-    const products = await db.getAll('products');
-    const product = products.find((item) => item.barcode === barcode && item.is_active);
-    if (!product) apiError('لم يتم العثور على أي منتج بهذا الباركود.');
-    const [categories, units] = await Promise.all([db.getAll('categories'), db.getAll('units')]);
-    return withRelations(product, categories, units);
+    const categories = await db.getAll('categories');
+    return withRelations(product, categories);
   },
 
   async createProduct(data) {
@@ -78,13 +66,10 @@ export const productsApi = {
     const initialStock = qty(data.stock_quantity);
     const id = await db.add('products', {
       name: data.name,
-      barcode: data.barcode || '',
-      sku: data.sku || '',
       category_id: data.category_id ? Number(data.category_id) : null,
-      unit_id: data.unit_id ? Number(data.unit_id) : null,
+      unit: data.unit || 'حبة',
       cost_price: money(data.cost_price),
       selling_price: money(data.selling_price),
-      tax_percent: money(data.tax_percent ?? 15),
       stock_quantity: initialStock,
       min_stock_alert: qty(data.min_stock_alert ?? 5),
       description: data.description || '',
@@ -119,10 +104,9 @@ export const productsApi = {
       id: product.id,
       stock_quantity: product.stock_quantity,
       category_id: data.category_id ? Number(data.category_id) : product.category_id,
-      unit_id: data.unit_id ? Number(data.unit_id) : product.unit_id,
+      unit: data.unit ?? product.unit,
       cost_price: money(data.cost_price ?? product.cost_price),
       selling_price: money(data.selling_price ?? product.selling_price),
-      tax_percent: money(data.tax_percent ?? product.tax_percent),
       min_stock_alert: qty(data.min_stock_alert ?? product.min_stock_alert),
       updated_at: nowIso(),
     };
@@ -136,8 +120,8 @@ export const productsApi = {
     if (!product) apiError('المنتج غير موجود.');
     const [sales, purchases] = await Promise.all([db.getAll('sales'), db.getAll('purchases')]);
     const used =
-      sales.some((sale) => (sale.items || []).some((item) => item.product_id === id)) ||
-      purchases.some((purchase) => (purchase.items || []).some((item) => item.product_id === id));
+      sales.some((sale) => sale.invoice_status !== 'void' && (sale.items || []).some((item) => item.product_id === id)) ||
+      purchases.some((purchase) => purchase.purchase_status !== 'void' && (purchase.items || []).some((item) => item.product_id === id));
     if (used) {
       await db.put('products', { ...product, is_active: false, updated_at: nowIso() });
       return { success: true, message: 'تم تعطيل المنتج لربطه بفواتير سابقة بدلاً من حذفه نهائياً.' };
@@ -224,40 +208,6 @@ export const productsApi = {
     return { success: true, message: 'تم حذف التصنيف بنجاح.' };
   },
 
-  async getUnits() {
-    await ensureReady();
-    return db.getAll('units');
-  },
-
-  async createUnit(data) {
-    await ensureReady();
-    const id = await db.add('units', {
-      name: data.name,
-      short_name: data.short_name || data.name,
-      allow_decimal: Boolean(data.allow_decimal),
-      created_at: nowIso(),
-    });
-    return db.get('units', id);
-  },
-
-  async updateUnit(id, data) {
-    await ensureReady();
-    const unit = await db.get('units', id);
-    if (!unit) apiError('وحدة القياس غير موجودة.');
-    await db.put('units', { ...unit, ...data, id });
-    return db.get('units', id);
-  },
-
-  async deleteUnit(id) {
-    await ensureReady();
-    const products = await db.getAll('products');
-    if (products.some((product) => product.unit_id === id)) {
-      apiError('لا يمكن حذف هذه الوحدة لوجود منتجات مرتبطة بها.');
-    }
-    await db.delete('units', id);
-    return { success: true, message: 'تم حذف وحدة القياس بنجاح.' };
-  },
-
   async getStockMovements(params = {}) {
     await ensureReady();
     const [movements, products] = await Promise.all([db.getAll('stockMovements'), db.getAll('products')]);
@@ -278,7 +228,6 @@ function decorateMovementSync(movement, products) {
     balance_before: qty(movement.balance_before).toFixed(3),
     balance_after: qty(movement.balance_after).toFixed(3),
     product_name: product?.name,
-    product_barcode: product?.barcode,
   };
 }
 

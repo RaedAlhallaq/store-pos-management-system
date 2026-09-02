@@ -13,7 +13,6 @@ import {
   Save,
   RefreshCw,
   FileText,
-  Hash,
   Mail,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -222,19 +221,7 @@ export function SettingsPage() {
                 className="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-100 text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition-colors"
               />
             </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1.5 flex items-center gap-1.5">
-                <Hash className="w-3.5 h-3.5 text-purple-400" />
-                <span>الرقم الضريبي</span>
-              </label>
-              <input
-                type="text"
-                value={form.tax_number ?? ''}
-                onChange={(e) => updateField('tax_number', e.target.value)}
-                placeholder="300000000000003"
-                className="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-100 text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 transition-colors"
-              />
-            </div>
+
             <div className="sm:col-span-2">
               <label className="block text-xs font-medium text-slate-400 mb-1.5 flex items-center gap-1.5">
                 <MapPin className="w-3.5 h-3.5 text-emerald-400" />

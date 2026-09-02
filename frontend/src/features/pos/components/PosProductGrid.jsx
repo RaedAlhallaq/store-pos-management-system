@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Barcode, Boxes, Search, X, Package, AlertTriangle } from 'lucide-react';
+import { Boxes, Search, X, Package, AlertTriangle } from 'lucide-react';
 
 function ProductSkeleton() {
   return (
@@ -17,10 +17,9 @@ function ProductSkeleton() {
   );
 }
 
-export function PosProductGrid({ products, categories, onSelectProduct, onBarcodeSubmit, isLoading = false }) {
+export function PosProductGrid({ products, categories, onSelectProduct, isLoading = false }) {
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [barcodeInput, setBarcodeInput] = useState('');
   const [showOutOfStock, setShowOutOfStock] = useState(true);
 
   const filteredProducts = products.filter((product) => {
@@ -29,11 +28,7 @@ export function PosProductGrid({ products, categories, onSelectProduct, onBarcod
     if (!showOutOfStock && Number(product.stock_quantity) <= 0) return false;
     if (search) {
       const term = search.toLowerCase();
-      return (
-        product.name.toLowerCase().includes(term) ||
-        product.barcode?.includes(term) ||
-        product.sku?.toLowerCase().includes(term)
-      );
+      return product.name.toLowerCase().includes(term);
     }
     return true;
   });
@@ -43,47 +38,26 @@ export function PosProductGrid({ products, categories, onSelectProduct, onBarcod
   return (
     <div className="flex flex-col h-full space-y-4">
       {/* Search bar */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div className="relative">
-          <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-brand-400">
-            <Barcode className="w-5 h-5" />
-          </div>
-          <input
-            type="text"
-            placeholder="امسح الباركود أو اكتب واضغط Enter..."
-            value={barcodeInput}
-            onChange={(event) => setBarcodeInput(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter' && barcodeInput.trim()) {
-                event.preventDefault();
-                onBarcodeSubmit(barcodeInput.trim());
-                setBarcodeInput('');
-              }
-            }}
-            className="w-full bg-slate-950 text-slate-100 border-2 border-brand-500/40 rounded-2xl pr-11 pl-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 font-mono shadow-lg shadow-brand-500/5 placeholder:text-slate-500 placeholder:text-xs"
-          />
+      <div className="relative">
+        <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-slate-400">
+          <Search className="w-4 h-4" />
         </div>
-        <div className="relative">
-          <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-slate-400">
-            <Search className="w-4 h-4" />
-          </div>
-          <input
-            type="text"
-            placeholder="بحث يدوي باسم السلعة أو SKU..."
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            className="w-full bg-slate-900 text-slate-100 border border-slate-800 rounded-2xl pr-10 pl-10 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 placeholder:text-slate-500"
-          />
-          {search && (
-            <button
-              type="button"
-              onClick={() => setSearch('')}
-              className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500 hover:text-slate-300 transition-colors"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          )}
-        </div>
+        <input
+          type="text"
+          placeholder="بحث بالاسم..."
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          className="w-full bg-slate-900 text-slate-100 border border-slate-800 rounded-2xl pr-10 pl-10 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 placeholder:text-slate-500"
+        />
+        {search && (
+          <button
+            type="button"
+            onClick={() => setSearch('')}
+            className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500 hover:text-slate-300 transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
       </div>
 
       {/* Category filter + stock toggle */}
@@ -126,7 +100,7 @@ export function PosProductGrid({ products, categories, onSelectProduct, onBarcod
             <Boxes className="w-12 h-12 text-slate-600 mb-2" />
             <p className="text-sm font-bold text-slate-300">لا توجد منتجات مطابقة</p>
             <p className="text-xs text-slate-500 mt-1 max-w-[200px]">
-              {search ? 'جرّب كلمة بحث مختلفة أو تحقق من الباركود' : 'لا توجد منتجات في هذا التصنيف'}
+              {search ? 'جرّب كلمة بحث مختلفة' : 'لا توجد منتجات في هذا التصنيف'}
             </p>
           </div>
         ) : (
@@ -160,9 +134,6 @@ export function PosProductGrid({ products, categories, onSelectProduct, onBarcod
                       <h4 className={`font-bold text-xs md:text-sm line-clamp-2 leading-snug ${isOut ? 'text-slate-400' : 'text-slate-100 group-hover:text-brand-300 transition-colors'}`}>
                         {product.name}
                       </h4>
-                      {product.sku && (
-                        <span className="text-[10px] text-slate-600 font-mono mt-1 block">SKU: {product.sku}</span>
-                      )}
                       {isOut && (
                         <span className="text-[10px] text-rose-400 font-semibold mt-1 flex items-center gap-0.5">
                           <AlertTriangle className="w-2.5 h-2.5" />
@@ -171,7 +142,7 @@ export function PosProductGrid({ products, categories, onSelectProduct, onBarcod
                       )}
                     </div>
                     <div className="mt-3 pt-2 border-t border-slate-800/80 flex items-center justify-between">
-                      <span className="text-xs text-slate-400">{product.unit?.short_name || 'حبة'}</span>
+                      <span className="text-xs text-slate-400">{product.unit || 'حبة'}</span>
                       <span className="text-sm font-bold text-slate-100 font-mono text-left">
                         {Number(product.selling_price).toFixed(2)} <span className="text-[10px] font-normal text-slate-400">₪</span>
                       </span>

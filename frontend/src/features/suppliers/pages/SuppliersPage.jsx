@@ -20,7 +20,6 @@ import {
   Building,
   RefreshCw,
   X,
-  Mail,
   MapPin,
   CreditCard,
 } from 'lucide-react';
@@ -73,8 +72,7 @@ export function SuppliersPage() {
   const [formName, setFormName] = useState('');
   const [formCompanyName, setFormCompanyName] = useState('');
   const [formPhone, setFormPhone] = useState('');
-  const [formEmail, setFormEmail] = useState('');
-  const [formTaxNumber, setFormTaxNumber] = useState('');
+
   const [formBankName, setFormBankName] = useState('');
   const [formBankIban, setFormBankIban] = useState('');
   const [formAddress, setFormAddress] = useState('');
@@ -114,8 +112,7 @@ export function SuppliersPage() {
     setFormName('');
     setFormCompanyName('');
     setFormPhone('');
-    setFormEmail('');
-    setFormTaxNumber('');
+
     setFormBankName('');
     setFormBankIban('');
     setFormAddress('');
@@ -127,8 +124,7 @@ export function SuppliersPage() {
     setFormName(s.name);
     setFormCompanyName(s.company_name || '');
     setFormPhone(s.phone || '');
-    setFormEmail(s.email || '');
-    setFormTaxNumber(s.tax_number || '');
+
     setFormBankName(s.bank_name || '');
     setFormBankIban(s.bank_iban || '');
     setFormAddress(s.address || '');
@@ -142,8 +138,7 @@ export function SuppliersPage() {
       name: formName.trim(),
       company_name: formCompanyName.trim() || undefined,
       phone: formPhone.trim() || undefined,
-      email: formEmail.trim() || undefined,
-      tax_number: formTaxNumber.trim() || undefined,
+
       bank_name: formBankName.trim() || undefined,
       bank_iban: formBankIban.trim() || undefined,
       address: formAddress.trim() || undefined,
@@ -451,9 +446,7 @@ export function SuppliersPage() {
                     {supplier.phone && (
                       <span className="flex items-center gap-1 font-mono"><Phone className="w-3 h-3 text-slate-500" />{supplier.phone}</span>
                     )}
-                    {supplier.email && (
-                      <span className="flex items-center gap-1 truncate"><Mail className="w-3 h-3 text-slate-500" />{supplier.email}</span>
-                    )}
+
                     {supplier.address && (
                       <span className="flex items-center gap-1 truncate"><MapPin className="w-3 h-3 text-slate-500" />{supplier.address}</span>
                     )}
@@ -518,7 +511,7 @@ export function SuppliersPage() {
                 <tr className="bg-slate-950/80 border-b border-slate-800 text-slate-400 font-semibold select-none">
                   <th className="py-3.5 px-4">اسم المورد / الشركة</th>
                   <th className="py-3.5 px-4">الهاتف</th>
-                  <th className="py-3.5 px-4">البريد / العنوان</th>
+                  <th className="py-3.5 px-4">العنوان</th>
                   <th className="py-3.5 px-4">المستحقات الحالية</th>
                   <th className="py-3.5 px-4">الحساب البنكي / IBAN</th>
                   <th className="py-3.5 px-4">الحالة</th>
@@ -559,17 +552,11 @@ export function SuppliersPage() {
                       </td>
                       <td className="py-3.5 px-4 max-w-[200px]">
                         <div className="space-y-0.5">
-                          {supplier.email ? (
-                            <span className="text-slate-400 text-xs flex items-center gap-1 truncate block">
-                              <Mail className="w-3 h-3 shrink-0" />{supplier.email}
-                            </span>
-                          ) : null}
                           {supplier.address ? (
-                            <span className="text-slate-500 text-[11px] flex items-center gap-1 truncate block">
+                            <span className="text-slate-400 text-xs flex items-center gap-1 truncate block">
                               <MapPin className="w-3 h-3 shrink-0" />{supplier.address}
                             </span>
-                          ) : null}
-                          {!supplier.email && !supplier.address && <span className="text-slate-600">—</span>}
+                          ) : <span className="text-slate-600">—</span>}
                         </div>
                       </td>
                       <td className="py-3.5 px-4 font-mono">
@@ -676,10 +663,10 @@ export function SuppliersPage() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Input label="رقم الهاتف" placeholder="0500000000" value={formPhone} onChange={(e) => setFormPhone(e.target.value)} />
-              <Input label="البريد الإلكتروني" placeholder="supplier@example.com" value={formEmail} onChange={(e) => setFormEmail(e.target.value)} />
+
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <Input label="الرقم الضريبي" placeholder="300000000000003" value={formTaxNumber} onChange={(e) => setFormTaxNumber(e.target.value)} />
+
               <Input label="العنوان / المستودع" placeholder="الرياض، المدينة الصناعية الثانية" value={formAddress} onChange={(e) => setFormAddress(e.target.value)} />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

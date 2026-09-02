@@ -25,7 +25,7 @@ export function ProductFilterBar({ filters, categories, onFilterChange }) {
           </div>
           <input
             type="text"
-            placeholder="ابحث بالاسم، الباركود، أو رمز الصنف (SKU)..."
+            placeholder="ابحث بالاسم..."
             value={filters.search || ''}
             onChange={(e) => onFilterChange({ search: e.target.value })}
             className="w-full bg-slate-950/80 text-slate-100 border border-slate-800 rounded-xl pr-10 pl-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 placeholder:text-slate-500"

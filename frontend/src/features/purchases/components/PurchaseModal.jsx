@@ -13,9 +13,7 @@ function ProductSearchPicker({ products, onSelect, placeholder = 'بحث عن م
 
   const filtered = query.trim().length > 0
     ? products.filter((p) =>
-        p.name.toLowerCase().includes(query.toLowerCase()) ||
-        (p.barcode && p.barcode.includes(query)) ||
-        (p.sku && p.sku.toLowerCase().includes(query.toLowerCase()))
+        p.name.toLowerCase().includes(query.toLowerCase())
       ).slice(0, 8)
     : [];
 
@@ -54,7 +52,7 @@ function ProductSearchPicker({ products, onSelect, placeholder = 'بحث عن م
                 <div className="text-sm font-medium text-slate-200 truncate">{p.name}</div>
                 <div className="text-xs text-slate-500 mt-0.5">
                   {p.category_name && <span>{p.category_name}</span>}
-                  {p.sku && <span className="ms-2">SKU: {p.sku}</span>}
+
                 </div>
               </div>
               <div className="text-end ms-3 shrink-0">
@@ -89,7 +87,7 @@ export function PurchaseModal({ isOpen, onClose, suppliers, products, onSave, is
     quantity: 1,
     unit_cost: Number(product?.cost_price || 0),
     selling_price: Number(product?.selling_price || 0),
-    tax_percent: Number(product?.tax_percent || 15),
+
   });
 
   const [items, setItems] = useState([createEmptyItem(products[0])]);
@@ -113,7 +111,7 @@ export function PurchaseModal({ isOpen, onClose, suppliers, products, onSave, is
       product_name: product.name,
       unit_cost: Number(product.cost_price),
       selling_price: Number(product.selling_price),
-      tax_percent: Number(product.tax_percent || 15),
+
     } : item));
   };
 
@@ -122,9 +120,9 @@ export function PurchaseModal({ isOpen, onClose, suppliers, products, onSave, is
   };
 
   const calculatedSubtotal = items.reduce((sum, item) => sum + item.unit_cost * item.quantity, 0);
-  const calculatedTax = items.reduce((sum, item) => sum + (item.unit_cost * item.quantity * item.tax_percent) / 100, 0);
+
   const discountNum = Number(discountAmount || 0);
-  const grandTotal = Math.max(0, calculatedSubtotal + calculatedTax - discountNum);
+  const grandTotal = Math.max(0, calculatedSubtotal - discountNum);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -147,7 +145,7 @@ export function PurchaseModal({ isOpen, onClose, suppliers, products, onSave, is
         quantity: it.quantity,
         unit_cost: it.unit_cost,
         selling_price: it.selling_price > 0 ? it.selling_price : undefined,
-        tax_percent: it.tax_percent,
+
       })),
       payments: [{ payment_method: paymentMethod, amount: grandTotal }],
     };
@@ -199,9 +197,7 @@ export function PurchaseModal({ isOpen, onClose, suppliers, products, onSave, is
 
           <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
             {items.map((item, idx) => {
-              const lineSubtotal = item.unit_cost * item.quantity;
-              const lineTax = (lineSubtotal * item.tax_percent) / 100;
-              const lineTotal = lineSubtotal + lineTax;
+              const lineSubtotal = item.unit_cost * item.quantity;              const lineTotal = lineSubtotal;
               const profit = item.selling_price > 0 ? (item.selling_price - item.unit_cost) * item.quantity : 0;
 
               return (
@@ -217,7 +213,7 @@ export function PurchaseModal({ isOpen, onClose, suppliers, products, onSave, is
                           <span className="text-sm font-medium text-slate-200 truncate">{item.product_name}</span>
                           <button
                             type="button"
-                            onClick={() => handleProductPicked(idx, { id: 0, name: '', cost_price: 0, selling_price: 0, tax_percent: 15 })}
+                            onClick={() => handleProductPicked(idx, { id: 0, name: '', cost_price: 0, selling_price: 0 })}
                             className="text-xs text-slate-500 hover:text-rose-400 me-2 transition-colors"
                           >
                             تغيير
@@ -321,10 +317,7 @@ export function PurchaseModal({ isOpen, onClose, suppliers, products, onSave, is
               <span>المجموع الفرعي</span>
               <span className="font-mono">{calculatedSubtotal.toFixed(2)} ₪</span>
             </div>
-            <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
-              <span>الضريبة</span>
-              <span className="font-mono">{calculatedTax.toFixed(2)} ₪</span>
-            </div>
+
             {discountNum > 0 && (
               <div className="flex items-center justify-between text-xs text-rose-400 mb-1">
                 <span>الخصم</span>

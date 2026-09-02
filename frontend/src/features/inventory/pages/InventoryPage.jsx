@@ -43,9 +43,7 @@ function ProductPicker({ products, onSelect }) {
   const filtered = (products || []).filter((p) => {
     if (!query) return true;
     const term = query.toLowerCase();
-    return (p.name || '').toLowerCase().includes(term) ||
-      (p.barcode || '').toLowerCase().includes(term) ||
-      (p.sku || '').toLowerCase().includes(term);
+    return (p.name || '').toLowerCase().includes(term);
   });
 
   return (
@@ -74,7 +72,6 @@ function ProductPicker({ products, onSelect }) {
               >
                 <div className="min-w-0">
                   <span className="font-bold text-sm text-slate-100 block truncate">{product.name}</span>
-                  {product.barcode && <span className="text-[10px] text-slate-500 font-mono">{product.barcode}</span>}
                 </div>
                 <span className={`font-mono text-xs font-bold whitespace-nowrap ${stock <= 0 ? 'text-rose-400' : stock <= Number(product.min_stock_alert) ? 'text-amber-400' : 'text-slate-300'}`}>
                   {stock}
@@ -348,9 +345,7 @@ export function InventoryPage() {
                         <td className="py-3 px-4">
                           <div>
                             <span className="font-bold text-slate-100 text-sm block">{movement.product_name || 'صنف غير معرف'}</span>
-                            {movement.product_barcode && (
-                              <span className="text-[10px] text-slate-500 font-mono">{movement.product_barcode}</span>
-                            )}
+
                             {/* Show date inline on mobile */}
                             <span className="text-[10px] text-slate-500 sm:hidden block mt-0.5">
                               {movement.created_at

@@ -7,7 +7,6 @@ function formatSale(sale) {
   return {
     ...sale,
     subtotal: money(sale.subtotal).toFixed(2),
-    tax_amount: money(sale.tax_amount).toFixed(2),
     discount_amount: money(sale.discount_amount).toFixed(2),
     grand_total: money(sale.grand_total).toFixed(2),
     paid_amount: money(sale.paid_amount).toFixed(2),
@@ -18,8 +17,6 @@ function formatSale(sale) {
       unit_cost: money(item.unit_cost).toFixed(2),
       unit_price: money(item.unit_price).toFixed(2),
       quantity: qty(item.quantity).toFixed(3),
-      tax_percent: money(item.tax_percent).toFixed(2),
-      tax_amount: money(item.tax_amount).toFixed(2),
       discount_amount: money(item.discount_amount).toFixed(2),
       subtotal: money(item.subtotal).toFixed(2),
     })),
@@ -40,7 +37,6 @@ export const posApi = {
     const sessions = await db.getAll('cashSessions');
     const active = sessions.find((session) => session.status === 'open' && session.user_id === user.id) || null;
     let subtotal = 0;
-    let taxTotal = 0;
     let itemsDiscount = 0;
     const prepared = [];
 
@@ -51,11 +47,8 @@ export const posApi = {
       if (quantity <= 0) apiError('كمية الصنف يجب أن تكون أكبر من الصفر.');
       const unitPrice = money(product.selling_price);
       const itemDiscount = money(item.discount_amount || 0);
-      const taxPercent = money(product.tax_percent ?? 15);
       const lineNet = money(unitPrice * quantity - itemDiscount);
-      const itemTax = money(lineNet * (taxPercent / 100));
       subtotal += lineNet;
-      taxTotal += itemTax;
       itemsDiscount += itemDiscount;
       prepared.push({
         product,
@@ -64,22 +57,20 @@ export const posApi = {
         unit_cost: money(product.cost_price),
         unit_price: unitPrice,
         quantity,
-        tax_percent: taxPercent,
-        tax_amount: itemTax,
         discount_amount: itemDiscount,
-        subtotal: money(lineNet + itemTax),
+        subtotal: lineNet,
       });
     }
 
     // Validate stock availability before any stock changes (prevent partial state)
     for (const prep of prepared) {
       if (qty(prep.product.stock_quantity) < qty(prep.quantity)) {
-        apiError(`المنتج "${prep.product_name}" لا يملك مخزوناً كافياً. المتوفر: ${qty(prep.product.stock_quantity).toFixed(0)}، المطلوب: ${qty(prep.quantity).toFixed(0)}.`);
+        apiError(`المنتج \"${prep.product_name}\" لا يملك مخزوناً كافياً. المتوفر: ${qty(prep.product.stock_quantity).toFixed(0)}، المطلوب: ${qty(prep.quantity).toFixed(0)}.`);
       }
     }
 
     const overallDiscount = money(payload.discount_amount || 0);
-    let grandTotal = money(subtotal + taxTotal - overallDiscount);
+    let grandTotal = money(subtotal - overallDiscount);
     if (grandTotal < 0) grandTotal = 0;
 
     let payments = payload.payments || [];
@@ -106,9 +97,6 @@ export const posApi = {
       if (!payload.customer_id) apiError('البيع بالآجل أو وجود رصيد متبقٍ يتطلب تحديد عميل مسجل.');
       const customer = await db.get('customers', payload.customer_id);
       if (!customer) apiError('العميل المحدد غير موجود.');
-      if (money(customer.credit_limit) > 0 && money(customer.current_balance) + dueAmount > money(customer.credit_limit)) {
-        apiError(`المبلغ المتبقي يتجاوز الحد الائتماني المسموح به للعميل (${customer.credit_limit}).`);
-      }
     }
 
     const primaryPaymentMethod = payments.length > 1 ? 'multiple' : payments[0]?.payment_method || 'cash';
@@ -139,7 +127,7 @@ export const posApi = {
       for (const payment of payments) {
         const amount = money(Math.min(Number(payment.amount), grandTotal));
         if (payment.payment_method === 'cash') active.total_sales_cash = money((active.total_sales_cash || 0) + amount);
-        if (payment.payment_method === 'card') active.total_sales_card = money((active.total_sales_card || 0) + amount);
+        else if (payment.payment_method !== 'credit') active.total_sales_card = money((active.total_sales_card || 0) + amount);
       }
       if (dueAmount > 0) active.total_sales_credit = money((active.total_sales_credit || 0) + dueAmount);
       await db.put('cashSessions', active);
@@ -171,13 +159,12 @@ export const posApi = {
       customer,
       cash_session_id: active?.id || null,
       subtotal: money(subtotal),
-      tax_amount: money(taxTotal),
       discount_amount: money(overallDiscount + itemsDiscount),
       grand_total: grandTotal,
       paid_amount: paidAmount,
       due_amount: dueAmount,
       payment_status: paymentStatus,
-      payment_method: primaryPaymentMethod === 'bank_transfer' ? 'multiple' : primaryPaymentMethod,
+      payment_method: primaryPaymentMethod,
       invoice_status: 'completed',
       notes: payload.notes || '',
       items: saleItems,
@@ -262,8 +249,7 @@ export const posApi = {
         for (const payment of sale.payments || []) {
           if (payment.payment_method === 'cash') {
             session.total_sales_cash = money(Math.max(0, (session.total_sales_cash || 0) - money(payment.amount)));
-          }
-          if (payment.payment_method === 'card') {
+          } else if (payment.payment_method !== 'credit') {
             session.total_sales_card = money(Math.max(0, (session.total_sales_card || 0) - money(payment.amount)));
           }
         }

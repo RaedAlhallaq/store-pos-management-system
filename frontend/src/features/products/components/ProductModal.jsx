@@ -6,23 +6,20 @@ import { Modal } from '../../../components/ui/Modal';
 import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
 import { Button } from '../../../components/ui/Button';
-import { Sparkles, Barcode, Calculator, Check } from 'lucide-react';
+import { Calculator, Check } from 'lucide-react';
 
 const productSchema = z.object({
   name: z.string().min(2, 'اسم المنتج يجب أن يتكون من حرفين على الأقل'),
-  barcode: z.string().optional().default(''),
-  sku: z.string().optional().default(''),
   category_id: z.string().optional().default(''),
-  unit_id: z.string().optional().default(''),
+  unit: z.string().min(1, 'وحدة القياس مطلوبة'),
   cost_price: z.string().refine((val) => !isNaN(Number(val)) && Number(val) >= 0, {
     message: 'سعر التكلفة يجب أن يكون رقماً صحيحاً أو عشرياً موجباً',
   }),
   selling_price: z.string().refine((val) => !isNaN(Number(val)) && Number(val) >= 0, {
     message: 'سعر البيع يجب أن يكون رقماً موجباً',
   }),
-  tax_percent: z.string().optional().default('15.00'),
   stock_quantity: z.string().optional().default('0.000'),
-  min_stock_alert: z.string().optional().default('5.000'),
+  min_stock_alert: z.string().optional().default('5'),
   description: z.string().optional().default(''),
   is_active: z.boolean().default(true),
 }).refine((data) => Number(data.selling_price) >= Number(data.cost_price), {
@@ -36,7 +33,6 @@ export function ProductModal({
   onSave,
   product,
   categories,
-  units,
   isLoading = false,
 }) {
   const isEditing = !!product;
@@ -44,7 +40,6 @@ export function ProductModal({
   const {
     register,
     handleSubmit,
-    setValue,
     reset,
     control,
     formState: { errors },
@@ -52,15 +47,12 @@ export function ProductModal({
     resolver: zodResolver(productSchema),
     defaultValues: {
       name: '',
-      barcode: '',
-      sku: '',
       category_id: '',
-      unit_id: '',
+      unit: 'حبة',
       cost_price: '0.00',
       selling_price: '0.00',
-      tax_percent: '15.00',
       stock_quantity: '0.000',
-      min_stock_alert: '5.000',
+      min_stock_alert: '5',
       description: '',
       is_active: true,
     },
@@ -77,13 +69,10 @@ export function ProductModal({
     if (product) {
       reset({
         name: product.name,
-        barcode: product.barcode || '',
-        sku: product.sku || '',
         category_id: product.category_id ? String(product.category_id) : '',
-        unit_id: product.unit_id ? String(product.unit_id) : '',
+        unit: product.unit || 'حبة',
         cost_price: product.cost_price,
         selling_price: product.selling_price,
-        tax_percent: product.tax_percent,
         stock_quantity: product.stock_quantity,
         min_stock_alert: product.min_stock_alert,
         description: product.description || '',
@@ -92,38 +81,27 @@ export function ProductModal({
     } else {
       reset({
         name: '',
-        barcode: '',
-        sku: '',
         category_id: categories[0]?.id ? String(categories[0].id) : '',
-        unit_id: units[0]?.id ? String(units[0].id) : '',
+        unit: 'حبة',
         cost_price: '0.00',
         selling_price: '0.00',
-        tax_percent: '15.00',
         stock_quantity: '0.000',
-        min_stock_alert: '5.000',
+        min_stock_alert: '5',
         description: '',
         is_active: true,
       });
     }
-  }, [product, isOpen, reset, categories, units]);
-
-  const generateBarcode = () => {
-    const randomSuffix = Math.floor(1000000000 + Math.random() * 9000000000);
-    setValue('barcode', `628${randomSuffix}`, { shouldValidate: true });
-  };
+  }, [product, isOpen, reset, categories]);
 
   const onSubmit = async (data) => {
     await onSave({
       name: data.name,
-      barcode: data.barcode || undefined,
-      sku: data.sku || undefined,
       category_id: data.category_id ? Number(data.category_id) : undefined,
-      unit_id: data.unit_id ? Number(data.unit_id) : undefined,
+      unit: data.unit,
       cost_price: data.cost_price,
       selling_price: data.selling_price,
-      tax_percent: data.tax_percent || '0.00',
       stock_quantity: data.stock_quantity || '0.000',
-      min_stock_alert: data.min_stock_alert || '5.000',
+      min_stock_alert: data.min_stock_alert || '5',
       description: data.description || undefined,
       is_active: data.is_active ?? true,
     });
@@ -138,34 +116,13 @@ export function ProductModal({
       maxWidth="2xl"
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        {/* Row 1: Name & Barcode */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Input
-            label="اسم المنتج *"
-            placeholder="مثال: أرز بسمتي 5 كغ"
-            error={errors.name?.message}
-            {...register('name')}
-          />
-
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <button
-                type="button"
-                onClick={generateBarcode}
-                className="text-[11px] text-brand-400 hover:text-brand-300 flex items-center gap-1 font-semibold"
-              >
-                <Sparkles className="w-3 h-3" />
-                <span>توليد باركود تلقائي</span>
-              </button>
-            </div>
-            <Input
-              placeholder="امسح أو أدخل الباركود"
-              leftIcon={<Barcode className="w-4 h-4 text-slate-400" />}
-              error={errors.barcode?.message}
-              {...register('barcode')}
-            />
-          </div>
-        </div>
+        {/* Row 1: Name */}
+        <Input
+          label="اسم المنتج *"
+          placeholder="مثال: مسحوق غسيل 3 كغ"
+          error={errors.name?.message}
+          {...register('name')}
+        />
 
         {/* Row 2: Category & Unit */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -177,12 +134,11 @@ export function ProductModal({
             {...register('category_id')}
           />
 
-          <Select
-            label="وحدة القياس"
-            options={units.map((u) => ({ value: u.id, label: `${u.name} (${u.short_name})` }))}
-            placeholderOption="اختر الوحدة..."
-            error={errors.unit_id?.message}
-            {...register('unit_id')}
+          <Input
+            label="وحدة القياس *"
+            placeholder="حبة، لتر، كغ، كرتونة..."
+            error={errors.unit?.message}
+            {...register('unit')}
           />
         </div>
 
@@ -204,7 +160,7 @@ export function ProductModal({
             </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Input
               type="number"
               step="0.01"
@@ -219,14 +175,6 @@ export function ProductModal({
               label="سعر البيع *"
               error={errors.selling_price?.message}
               {...register('selling_price')}
-            />
-
-            <Input
-              type="number"
-              step="0.01"
-              label="نسبة الضريبة (%)"
-              error={errors.tax_percent?.message}
-              {...register('tax_percent')}
             />
           </div>
         </div>
@@ -246,7 +194,7 @@ export function ProductModal({
             <div className="bg-slate-950/40 p-3 rounded-xl border border-slate-800 text-xs text-slate-400">
               <span className="block font-semibold text-slate-300 mb-1">الرصيد الحالي بالمستودع</span>
               <p className="text-lg font-bold text-slate-100 font-mono">
-                {product.stock_quantity} {product.unit?.short_name || 'حبة'}
+                {product.stock_quantity} {product.unit || 'حبة'}
               </p>
               <span className="text-[10px] text-brand-400">لتعديل الرصيد استخدم نافذة (تسوية المخزون)</span>
             </div>
@@ -254,8 +202,8 @@ export function ProductModal({
 
           <Input
             type="number"
-            step="0.001"
-            label="حد التنبيه الأدنى (Min Alert)"
+            step="1"
+            label="حد التنبيه الأدنى"
             helperText="تنبيه عندما ينخفض المخزون عن هذا الحد"
             error={errors.min_stock_alert?.message}
             {...register('min_stock_alert')}

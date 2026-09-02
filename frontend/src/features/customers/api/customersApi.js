@@ -6,7 +6,6 @@ import { ensureReady, money, nextSequence, nowIso, requireUser } from '../../../
 function publicCustomer(customer) {
   return {
     ...customer,
-    credit_limit: money(customer.credit_limit).toFixed(2),
     current_balance: money(customer.current_balance).toFixed(2),
   };
 }
@@ -17,7 +16,7 @@ export const customersApi = {
     let rows = (await db.getAll('customers')).map(publicCustomer);
     if (params.search) {
       const term = String(params.search).toLowerCase();
-      rows = rows.filter((row) => [row.name, row.phone, row.tax_number].some((value) => String(value || '').toLowerCase().includes(term)));
+      rows = rows.filter((row) => [row.name, row.phone].some((value) => String(value || '').toLowerCase().includes(term)));
     }
     if (params.has_debt) rows = rows.filter((row) => Number(row.current_balance) > 0);
     rows.sort((a, b) => b.id - a.id);
@@ -34,12 +33,7 @@ export const customersApi = {
     const id = await db.add('customers', {
       name: data.name,
       phone: data.phone || '',
-      email: data.email || '',
-      tax_number: data.tax_number || '',
-      address: data.address || '',
-      credit_limit: money(data.credit_limit || 0),
       current_balance: 0,
-      notes: data.notes || '',
       is_active: data.is_active !== false,
       created_at: nowIso(),
     });

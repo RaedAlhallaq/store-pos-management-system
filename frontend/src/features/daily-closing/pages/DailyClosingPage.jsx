@@ -62,7 +62,7 @@ export function DailyClosingPage() {
 
   const sessionHistory = sessions.filter((s) => s.status === 'closed');
   const totalCashSales = sessions.reduce((sum, s) => sum + parseFloat(s.total_sales_cash || 0), 0);
-  const totalCardSales = sessions.reduce((sum, s) => sum + parseFloat(s.total_sales_card || 0), 0);
+  const totalElectronicSales = sessions.reduce((sum, s) => sum + parseFloat(s.total_sales_card || 0), 0);
   const totalSessions = sessions.length;
 
   return (
@@ -141,8 +141,8 @@ export function DailyClosingPage() {
           <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-[10px] md:text-xs font-semibold text-slate-400">إجمالي مبيعات البطاقة</p>
-                <p className="text-lg md:text-xl font-bold text-sky-400 font-mono mt-1">{fmt(totalCardSales)} ₪</p>
+                <p className="text-[10px] md:text-xs font-semibold text-slate-400">إجمالي المبيعات الإلكترونية</p>
+                <p className="text-lg md:text-xl font-bold text-sky-400 font-mono mt-1">{fmt(totalElectronicSales)} ₪</p>
               </div>
               <div className="p-2.5 rounded-xl bg-sky-500/10 text-sky-400 border border-sky-500/20">
                 <CreditCard className="w-5 h-5" />
@@ -185,7 +185,7 @@ export function DailyClosingPage() {
             {[
               { label: 'رصيد الافتتاح', value: `${fmt(activeSession.opening_cash)} ₪`, color: 'text-white', icon: Banknote },
               { label: 'مبيعات نقدية', value: `${fmt(activeSession.total_sales_cash)} ₪`, color: 'text-emerald-400', icon: DollarSign },
-              { label: 'مبيعات بطاقة', value: `${fmt(activeSession.total_sales_card)} ₪`, color: 'text-sky-400', icon: CreditCard },
+              { label: 'مبيعات إلكترونية', value: `${fmt(activeSession.total_sales_card)} ₪`, color: 'text-sky-400', icon: CreditCard },
               { label: 'مصروفات نقدية', value: `${fmt(activeSession.total_expenses_cash)} ₪`, color: 'text-rose-400', icon: TrendingDown },
             ].map((item) => {
               const Icon = item.icon;

@@ -58,13 +58,13 @@ export function ReportsPage() {
     setLoadError(null);
     const filters = { date_from: dateFrom || undefined, date_to: dateTo || undefined };
     try {
-      const [plData, taxData, topData] = await Promise.all([
+      const [plData, summaryData, topData] = await Promise.all([
         reportsApi.getProfitLoss(filters),
-        reportsApi.getSalesTax(filters),
+        reportsApi.getSalesSummary(filters),
         reportsApi.getTopProducts(10, filters),
       ]);
       setPl(plData);
-      setTax(taxData);
+      setTax(summaryData);
       setTopProducts(topData);
     } catch (e) {
       setLoadError(e?.message || 'حدث خطأ أثناء تحميل التقارير');
@@ -100,7 +100,7 @@ export function ReportsPage() {
 
   const tabs = [
     { id: 'pl', label: 'الأرباح', icon: TrendingUp },
-    { id: 'tax', label: 'المبيعات والضريبة', icon: Receipt },
+    { id: 'tax', label: 'المبيعات وطرق الدفع', icon: Receipt },
     { id: 'top', label: 'أعلى الأصناف', icon: Package },
   ];
 
@@ -223,7 +223,7 @@ export function ReportsPage() {
                 {[
                   { label: 'الإيرادات (قبل الخصم)', value: pl.total_revenue, color: 'text-emerald-400' },
                   { label: 'الخصومات', value: -pl.total_discounts_given, color: 'text-slate-400' },
-                  { label: 'إيراد صافي', value: pl.subtotal_before_tax, color: 'text-white font-bold', sep: true },
+                  { label: 'إيراد صافي', value: pl.subtotal, color: 'text-white font-bold', sep: true },
                   { label: 'تكلفة البضاعة المباعة (COGS)', value: -pl.cost_of_goods_sold, color: 'text-orange-400' },
                   { label: 'الربح الإجمالي', value: pl.gross_profit, color: pl.gross_profit >= 0 ? 'text-blue-400 font-bold' : 'text-rose-400 font-bold', sep: true },
                   { label: 'المصروفات التشغيلية', value: -pl.total_operating_expenses, color: 'text-rose-400' },
@@ -250,9 +250,8 @@ export function ReportsPage() {
         <div className="space-y-5">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             <StatCard label="إجمالي المبيعات" value={`${fmt(tax?.total_sales)} ₪`} color="text-emerald-400" icon={DollarSign} isLoading={loading} />
-            <StatCard label="المبلغ الخاضع للضريبة" value={`${fmt(tax?.taxable_amount)} ₪`} color="text-blue-400" icon={Receipt} isLoading={loading} />
-            <StatCard label="ضريبة القيمة المضافة" value={`${fmt(tax?.tax_amount)} ₪`} color="text-amber-400" icon={Wallet} isLoading={loading} />
-            <StatCard label="الخصومات" value={`${fmt(tax?.discount_amount)} ₪`} color="text-rose-400" icon={TrendingDown} isLoading={loading} />
+            <StatCard label="إجمالي الخصومات" value={`${fmt(tax?.discount_amount)} ₪`} color="text-amber-400" icon={Wallet} isLoading={loading} />
+
           </div>
 
           {/* Payment Breakdown */}
@@ -274,11 +273,12 @@ export function ReportsPage() {
               <div className="space-y-4">
                 {[
                   { label: 'نقداً', value: tax.payments_breakdown.cash, color: 'bg-emerald-500' },
-                  { label: 'بطاقة / شبكة', value: tax.payments_breakdown.card, color: 'bg-sky-500' },
-                  { label: 'آجل (ذمة)', value: tax.payments_breakdown.credit, color: 'bg-amber-500' },
-                  { label: 'دفع متعدد / مجزأ', value: tax.payments_breakdown.split || 0, color: 'bg-purple-500' },
+                  { label: 'بنك فلسطين', value: tax.payments_breakdown.bank_of_palestine, color: 'bg-sky-500' },
+                  { label: 'PalPay', value: tax.payments_breakdown.palpay, color: 'bg-purple-500' },
+                  { label: 'Jawwal Pay', value: tax.payments_breakdown.jawwal_pay, color: 'bg-amber-500' },
+                  { label: 'آجل (ذمة)', value: tax.payments_breakdown.credit, color: 'bg-orange-500' },
                 ].map((item) => {
-                  const total = (tax.payments_breakdown.cash || 0) + (tax.payments_breakdown.card || 0) + (tax.payments_breakdown.credit || 0) + (tax.payments_breakdown.split || 0);
+                  const total = (tax.payments_breakdown.cash || 0) + (tax.payments_breakdown.bank_of_palestine || 0) + (tax.payments_breakdown.palpay || 0) + (tax.payments_breakdown.jawwal_pay || 0) + (tax.payments_breakdown.credit || 0);
                   const pct = total > 0 ? (item.value / total) * 100 : 0;
                   return (
                     <div key={item.label}>

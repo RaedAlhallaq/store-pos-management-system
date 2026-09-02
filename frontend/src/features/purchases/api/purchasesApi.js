@@ -8,7 +8,6 @@ function formatPurchase(purchase, suppliers) {
   return {
     ...purchase,
     subtotal: money(purchase.subtotal).toFixed(2),
-    tax_amount: money(purchase.tax_amount).toFixed(2),
     discount_amount: money(purchase.discount_amount).toFixed(2),
     grand_total: money(purchase.grand_total).toFixed(2),
     paid_amount: money(purchase.paid_amount).toFixed(2),
@@ -18,10 +17,7 @@ function formatPurchase(purchase, suppliers) {
     items: (purchase.items || []).map((item) => ({
       ...item,
       unit_cost: money(item.unit_cost).toFixed(2),
-      unit_price: money(item.unit_price).toFixed(2),
       quantity: qty(item.quantity).toFixed(3),
-      tax_percent: money(item.tax_percent).toFixed(2),
-      tax_amount: money(item.tax_amount).toFixed(2),
       subtotal: money(item.subtotal).toFixed(2),
     })),
     payments: (purchase.payments || []).map((payment) => ({
@@ -72,7 +68,6 @@ export const purchasesApi = {
     if (!supplier) apiError('يجب تحديد مورد صالح.');
 
     let subtotal = 0;
-    let taxTotal = 0;
     const prepared = [];
 
     for (const item of items) {
@@ -82,26 +77,21 @@ export const purchasesApi = {
       if (quantity <= 0) apiError('الكمية يجب أن تكون أكبر من الصفر.');
       const unitCost = money(item.unit_price || item.unit_cost || product.cost_price);
       const itemDiscount = money(item.discount_amount || 0);
-      const taxPercent = money(item.tax_percent ?? 15);
       const lineNet = money(unitCost * quantity - itemDiscount);
-      const itemTax = money(lineNet * (taxPercent / 100));
       subtotal += lineNet;
-      taxTotal += itemTax;
       prepared.push({
         product,
         product_id: product.id,
         product_name: product.name,
         unit_cost: unitCost,
         quantity,
-        tax_percent: taxPercent,
-        tax_amount: itemTax,
         discount_amount: itemDiscount,
-        subtotal: money(lineNet + itemTax),
+        subtotal: lineNet,
       });
     }
 
     const overallDiscount = money(payload.discount_amount || 0);
-    let grandTotal = money(subtotal + taxTotal - overallDiscount);
+    let grandTotal = money(subtotal - overallDiscount);
     if (grandTotal < 0) grandTotal = 0;
 
     const payments = payload.payments || [];
@@ -124,7 +114,7 @@ export const purchasesApi = {
       const before = qty(prep.product.stock_quantity);
       const after = qty(before + prep.quantity);
       await db.put('products', { ...prep.product, stock_quantity: after, updated_at: createdAt });
-      purchaseItems.push({ product_id: prep.product_id, product_name: prep.product_name, unit_cost: prep.unit_cost, quantity: prep.quantity, tax_percent: prep.tax_percent, tax_amount: prep.tax_amount, discount_amount: prep.discount_amount, subtotal: prep.subtotal });
+      purchaseItems.push({ product_id: prep.product_id, product_name: prep.product_name, unit_cost: prep.unit_cost, quantity: prep.quantity, discount_amount: prep.discount_amount, subtotal: prep.subtotal });
       await db.add('stockMovements', {
         product_id: prep.product_id,
         user_id: user.id,
@@ -161,7 +151,6 @@ export const purchasesApi = {
       supplier_id: supplier.id,
       supplier_name: supplier.name,
       subtotal: money(subtotal),
-      tax_amount: money(taxTotal),
       discount_amount: money(overallDiscount),
       grand_total: grandTotal,
       paid_amount: paidAmount,
@@ -207,12 +196,12 @@ export const purchasesApi = {
       });
     }
 
-    // Reverse supplier balance
-    if (money(purchase.due_amount) > 0 && purchase.supplier_id) {
+    // Reverse supplier balance (full purchase amount)
+    if (purchase.supplier_id) {
       const supplier = await db.get('suppliers', purchase.supplier_id);
       if (supplier) {
         const before = money(supplier.current_balance);
-        const after = money(before - money(purchase.due_amount));
+        const after = money(before - money(purchase.grand_total));
         await db.put('suppliers', { ...supplier, current_balance: Math.max(0, after) });
       }
     }

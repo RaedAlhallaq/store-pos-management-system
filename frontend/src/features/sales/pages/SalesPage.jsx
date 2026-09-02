@@ -432,8 +432,8 @@ export function SalesPage() {
                   {/* Payment + Status */}
                   <div className="flex items-center justify-between pt-1 border-t border-slate-800">
                     <div className="flex items-center gap-2">
-                      <Badge variant={sale.payment_method === 'cash' ? 'success' : sale.payment_method === 'card' ? 'info' : sale.payment_method === 'credit' ? 'warning' : 'brand'} size="sm">
-                        {sale.payment_method === 'cash' ? 'نقداً' : sale.payment_method === 'card' ? 'بطاقة' : sale.payment_method === 'credit' ? 'آجل' : 'دفع متعدد'}
+                      <Badge variant={sale.payment_method === 'cash' ? 'success' : sale.payment_method === 'credit' ? 'warning' : 'info'} size="sm">
+                        {sale.payment_method === 'cash' ? 'نقداً' : sale.payment_method === 'bank_of_palestine' ? 'بنك فلسطين' : sale.payment_method === 'palpay' ? 'PalPay' : sale.payment_method === 'jawwal_pay' ? 'Jawwal Pay' : sale.payment_method === 'credit' ? 'آجل' : sale.payment_method === 'multiple' ? 'دفع متعدد' : sale.payment_method}
                       </Badge>
                       {sale.payment_status === 'paid' ? (
                         <Badge variant="success" size="sm">مسددة</Badge>
@@ -526,10 +526,10 @@ export function SalesPage() {
                       </td>
                       <td className="py-3.5 px-4">
                         <Badge
-                          variant={sale.payment_method === 'cash' ? 'success' : sale.payment_method === 'card' ? 'info' : sale.payment_method === 'credit' ? 'warning' : 'brand'}
+                          variant={sale.payment_method === 'cash' ? 'success' : sale.payment_method === 'credit' ? 'warning' : 'info'}
                           size="sm"
                         >
-                          {sale.payment_method === 'cash' ? 'نقداً' : sale.payment_method === 'card' ? 'بطاقة مدى' : sale.payment_method === 'credit' ? 'آجل (ذمة)' : 'دفع متعدد'}
+                          {sale.payment_method === 'cash' ? 'نقداً' : sale.payment_method === 'bank_of_palestine' ? 'بنك فلسطين' : sale.payment_method === 'palpay' ? 'PalPay' : sale.payment_method === 'jawwal_pay' ? 'Jawwal Pay' : sale.payment_method === 'credit' ? 'آجل (ذمة)' : sale.payment_method === 'multiple' ? 'دفع متعدد' : sale.payment_method}
                         </Badge>
                       </td>
                       <td className="py-3.5 px-4">

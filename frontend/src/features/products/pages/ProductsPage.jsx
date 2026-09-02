@@ -3,7 +3,6 @@ import { productsApi } from '../api/productsApi';
 import { ProductFilterBar } from '../components/ProductFilterBar';
 import { ProductModal } from '../components/ProductModal';
 import { CategoryModal } from '../components/CategoryModal';
-import { UnitModal } from '../components/UnitModal';
 import { StockAdjustmentModal } from '../components/StockAdjustmentModal';
 import { Button } from '../../../components/ui/Button';
 import { Card } from '../../../components/ui/Card';
@@ -13,17 +12,14 @@ import { EmptyState } from '../../../components/ui/EmptyState';
 import {
   Plus,
   Layers,
-  Scale,
   Edit,
   Trash2,
   PackageCheck,
   Boxes,
   AlertTriangle,
   TrendingUp,
-  Barcode as BarcodeIcon,
+
   DollarSign,
-  Copy,
-  Check,
   LayoutGrid,
   List,
   RefreshCw,
@@ -61,7 +57,7 @@ function SkeletonTable() {
 }
 
 /* ── Product Card (grid view) ──────────────────────── */
-function ProductCard({ product, onEdit, onDelete, onAdjust, copiedBarcode, onCopyBarcode }) {
+function ProductCard({ product, onEdit, onDelete, onAdjust }) {
   const stockQty = Number(product.stock_quantity);
   const minStock = Number(product.min_stock_alert);
   const isLow = stockQty > 0 && stockQty <= minStock;
@@ -77,25 +73,6 @@ function ProductCard({ product, onEdit, onDelete, onAdjust, copiedBarcode, onCop
         )}
       </div>
 
-      {/* Barcode */}
-      {product.barcode ? (
-        <button
-          onClick={() => onCopyBarcode(product.barcode)}
-          className="inline-flex items-center gap-1 mb-3 text-[11px] font-mono text-slate-400 hover:text-brand-400 bg-slate-950/60 px-2 py-0.5 rounded-md border border-slate-800 transition-colors"
-          title="اضغط لنسخ الباركود"
-        >
-          <BarcodeIcon className="w-3 h-3 text-brand-400" />
-          <span>{product.barcode}</span>
-          {copiedBarcode === product.barcode ? (
-            <Check className="w-3 h-3 text-emerald-400" />
-          ) : (
-            <Copy className="w-2.5 h-2.5 opacity-60" />
-          )}
-        </button>
-      ) : (
-        <span className="inline-block mb-3 text-[10px] text-slate-600">بدون باركود</span>
-      )}
-
       {/* Category & Unit chips */}
       <div className="flex flex-wrap items-center gap-1.5 mb-3">
         {product.category?.name && (
@@ -104,7 +81,7 @@ function ProductCard({ product, onEdit, onDelete, onAdjust, copiedBarcode, onCop
           </span>
         )}
         <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800/80 text-slate-300 border border-slate-700/60 font-semibold">
-          {product.unit?.short_name || 'حبة'}
+          {product.unit || 'حبة'}
         </span>
       </div>
 
@@ -194,14 +171,13 @@ export function ProductsPage() {
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
-  const [isUnitModalOpen, setIsUnitModalOpen] = useState(false);
+
   const [adjustingProduct, setAdjustingProduct] = useState(null);
-  const [copiedBarcode, setCopiedBarcode] = useState(null);
 
   // Data state
   const [productsData, setProductsData] = useState(null);
   const [categories, setCategories] = useState([]);
-  const [units, setUnits] = useState([]);
+
   const [metrics, setMetrics] = useState(null);
   const [isProductsLoading, setIsProductsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -223,13 +199,11 @@ export function ProductsPage() {
 
   const loadMeta = useCallback(async () => {
     try {
-      const [cats, u, m] = await Promise.all([
+      const [cats, m] = await Promise.all([
         productsApi.getCategories(),
-        productsApi.getUnits(),
         productsApi.getMetrics(),
       ]);
       setCategories(cats);
-      setUnits(u);
       setMetrics(m);
     } catch {
       // meta is non-critical; ignore silently
@@ -280,12 +254,7 @@ export function ProductsPage() {
     await refreshAll();
   };
 
-  const copyToClipboard = (text) => {
-    navigator.clipboard.writeText(text);
-    setCopiedBarcode(text);
-    setTimeout(() => setCopiedBarcode(null), 2000);
-    toast.info(`تم نسخ الباركود: ${text}`);
-  };
+
 
   const handleFilterChange = (patch) => {
     setFilters((prev) => ({ ...prev, ...patch, page: patch.page ?? 1 }));
@@ -306,15 +275,6 @@ export function ProductsPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setIsUnitModalOpen(true)}
-            rightIcon={<Scale className="w-4 h-4 text-slate-400" />}
-          >
-            وحدات القياس
-          </Button>
-
           <Button
             variant="outline"
             size="sm"
@@ -505,8 +465,7 @@ export function ProductsPage() {
                   onEdit={(p) => { setEditingProduct(p); setIsProductModalOpen(true); }}
                   onDelete={handleDeleteProduct}
                   onAdjust={(p) => setAdjustingProduct(p)}
-                  copiedBarcode={copiedBarcode}
-                  onCopyBarcode={copyToClipboard}
+
                 />
               ))}
             </div>
@@ -518,7 +477,7 @@ export function ProductsPage() {
               <table className="w-full text-right text-xs">
                 <thead>
                   <tr className="bg-slate-950/80 border-b border-slate-800 text-slate-400 font-semibold select-none">
-                    <th className="py-3.5 px-4">الصنف والباركود</th>
+                    <th className="py-3.5 px-4">الصنف</th>
                     <th className="py-3.5 px-4 hidden md:table-cell">التصنيف</th>
                     <th className="py-3.5 px-4 hidden lg:table-cell">الوحدة</th>
                     <th className="py-3.5 px-4 hidden sm:table-cell">سعر التكلفة</th>
@@ -537,27 +496,9 @@ export function ProductsPage() {
 
                     return (
                       <tr key={product.id} className="hover:bg-slate-800/40 transition-colors group">
-                        {/* Name & Barcode */}
                         <td className="py-3.5 px-4">
                           <div>
                             <span className="font-bold text-slate-100 text-sm block">{product.name}</span>
-                            {product.barcode ? (
-                              <button
-                                onClick={() => copyToClipboard(product.barcode)}
-                                className="inline-flex items-center gap-1 mt-1 text-[11px] font-mono text-slate-400 hover:text-brand-400 bg-slate-950/60 px-2 py-0.5 rounded-md border border-slate-800 transition-colors"
-                                title="اضغط لنسخ الباركود"
-                              >
-                                <BarcodeIcon className="w-3 h-3 text-brand-400" />
-                                <span>{product.barcode}</span>
-                                {copiedBarcode === product.barcode ? (
-                                  <Check className="w-3 h-3 text-emerald-400" />
-                                ) : (
-                                  <Copy className="w-2.5 h-2.5 opacity-60" />
-                                )}
-                              </button>
-                            ) : (
-                              <span className="text-[10px] text-slate-600">بدون باركود</span>
-                            )}
                           </div>
                         </td>
 
@@ -567,7 +508,7 @@ export function ProductsPage() {
 
                         <td className="py-3.5 px-4 hidden lg:table-cell">
                           <span className="px-2 py-0.5 rounded-md bg-slate-800/80 text-slate-300 border border-slate-700/60 text-[11px] font-semibold">
-                            {product.unit?.short_name || 'حبة'}
+                            {product.unit || 'حبة'}
                           </span>
                         </td>
 
@@ -644,7 +585,6 @@ export function ProductsPage() {
           onSave={handleSaveProduct}
           product={editingProduct}
           categories={categories}
-          units={units}
           isLoading={isSaving}
         />
       )}
@@ -657,17 +597,6 @@ export function ProductsPage() {
           onCreate={async (data) => { await productsApi.createCategory(data); await loadMeta(); }}
           onUpdate={async (id, data) => { await productsApi.updateCategory(id, data); await loadMeta(); }}
           onDelete={async (id) => { await productsApi.deleteCategory(id); await loadMeta(); }}
-        />
-      )}
-
-      {isUnitModalOpen && (
-        <UnitModal
-          isOpen={isUnitModalOpen}
-          onClose={() => setIsUnitModalOpen(false)}
-          units={units}
-          onCreate={async (data) => { await productsApi.createUnit(data); await loadMeta(); }}
-          onUpdate={async (id, data) => { await productsApi.updateUnit(id, data); await loadMeta(); }}
-          onDelete={async (id) => { await productsApi.deleteUnit(id); await loadMeta(); }}
         />
       )}
 

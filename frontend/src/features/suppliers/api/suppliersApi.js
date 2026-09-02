@@ -34,13 +34,8 @@ export const suppliersApi = {
       name: data.name,
       company_name: data.company_name || data.name,
       phone: data.phone || '',
-      email: data.email || '',
-      tax_number: data.tax_number || '',
-      bank_name: data.bank_name || '',
-      bank_iban: data.bank_iban || '',
       address: data.address || '',
       current_balance: 0,
-      notes: data.notes || '',
       is_active: data.is_active !== false,
       created_at: nowIso(),
     });

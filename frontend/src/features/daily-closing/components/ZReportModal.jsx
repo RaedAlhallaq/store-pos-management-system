@@ -5,11 +5,10 @@ import { fmtFixed } from '../../../lib/utils';
 const fmt = fmtFixed;
 
 export default function ZReportModal({ isOpen, zReport, onClose }) {
-  const [storeName, setStoreName] = useState('الأصيل للمنظفات');
+  const [storeName, setStoreName] = useState('نظام إدارة المحل');
 
   useEffect(() => {
-    if (isOpen) {
-      settingsApi.getSettings().then((s) => setStoreName(s.store_name || 'الأصيل للمنظفات')).catch(() => {});
+    if (isOpen) {        settingsApi.getSettings().then((s) => setStoreName(s.store_name || 'نظام إدارة المحل')).catch(() => {});
     }
   }, [isOpen]);
 
@@ -39,7 +38,7 @@ export default function ZReportModal({ isOpen, zReport, onClose }) {
             <div className="flex justify-between"><span>الفواتير:</span><span className="font-bold">{zReport.sales_count}</span></div>
             <div className="flex justify-between"><span>إجمالي المبيعات:</span><span className="font-bold">{fmt(zReport.total_sales)} ₪</span></div>
             <div className="flex justify-between text-slate-600"><span>نقداً:</span><span>{fmt(zReport.total_sales_cash)} ₪</span></div>
-            <div className="flex justify-between text-slate-600"><span>بطاقة:</span><span>{fmt(zReport.total_sales_card)} ₪</span></div>
+            <div className="flex justify-between text-slate-600"><span>إلكتروني:</span><span>{fmt(zReport.total_sales_card)} ₪</span></div>
             <div className="flex justify-between text-slate-600"><span>آجل:</span><span>{fmt(zReport.total_sales_credit)} ₪</span></div>
           </div>
           <div className="space-y-1 border-b-2 border-dashed border-slate-400 pb-3 mb-3">

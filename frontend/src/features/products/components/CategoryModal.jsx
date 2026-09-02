@@ -8,21 +8,20 @@ import { toast } from 'sonner';
 export function CategoryModal({ isOpen, onClose, categories, onCreate, onUpdate, onDelete }) {
   const [editingId, setEditingId] = useState(null);
   const [name, setName] = useState('');
-  const [code, setCode] = useState('');
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const startEdit = (cat) => {
     setEditingId(cat.id);
     setName(cat.name);
-    setCode(cat.code || '');
+
     setDescription(cat.description || '');
   };
 
   const resetForm = () => {
     setEditingId(null);
     setName('');
-    setCode('');
+
     setDescription('');
   };
 
@@ -36,10 +35,10 @@ export function CategoryModal({ isOpen, onClose, categories, onCreate, onUpdate,
     try {
       setIsSubmitting(true);
       if (editingId) {
-        await onUpdate(editingId, { name, code: code || undefined, description: description || undefined });
+        await onUpdate(editingId, { name, description: description || undefined });
         toast.success('تم تحديث التصنيف بنجاح');
       } else {
-        await onCreate({ name, code: code || undefined, description: description || undefined });
+        await onCreate({ name, description: description || undefined });
         toast.success('تمت إضافة التصنيف بنجاح');
       }
       resetForm();
@@ -77,20 +76,12 @@ export function CategoryModal({ isOpen, onClose, categories, onCreate, onUpdate,
             <span>{editingId ? 'تعديل التصنيف' : 'إضافة تصنيف جديد'}</span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Input
-              label="اسم التصنيف *"
-              placeholder="مثال: مشروبات وعصائر"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-            <Input
-              label="رمز التصنيف (اختياري)"
-              placeholder="مثال: BEV"
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-            />
-          </div>
+          <Input
+            label="اسم التصنيف *"
+            placeholder="مثال: مشروبات وعصائر"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
 
           <div className="flex items-center justify-end gap-2 pt-2">
             {editingId && (
@@ -118,11 +109,7 @@ export function CategoryModal({ isOpen, onClose, categories, onCreate, onUpdate,
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="font-bold text-sm text-slate-100">{cat.name}</span>
-                    {cat.code && (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-brand-400 font-mono">
-                        {cat.code}
-                      </span>
-                    )}
+
                   </div>
                   <span className="text-[11px] text-slate-500">
                     {cat.products_count ?? 0} منتج مرتبط

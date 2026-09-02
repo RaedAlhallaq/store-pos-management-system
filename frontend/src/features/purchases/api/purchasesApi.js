@@ -201,7 +201,7 @@ export const purchasesApi = {
       const supplier = await db.get('suppliers', purchase.supplier_id);
       if (supplier) {
         const before = money(supplier.current_balance);
-        const after = money(before - money(purchase.grand_total));
+        const after = money(before - money(purchase.due_amount));
         await db.put('suppliers', { ...supplier, current_balance: Math.max(0, after) });
       }
     }

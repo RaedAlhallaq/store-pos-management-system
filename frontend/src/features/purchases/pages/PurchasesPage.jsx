@@ -3,6 +3,7 @@ import { purchasesApi } from '../api/purchasesApi';
 import { suppliersApi } from '../../suppliers/api/suppliersApi';
 import { productsApi } from '../../products/api/productsApi';
 import { PurchaseModal } from '../components/PurchaseModal';
+import { PurchaseDetailsModal } from '../components/PurchaseDetailsModal';
 import { Card } from '../../../components/ui/Card';
 import { Badge } from '../../../components/ui/Badge';
 import { Button } from '../../../components/ui/Button';
@@ -10,6 +11,7 @@ import { Pagination } from '../../../components/ui/Pagination';
 import { EmptyState } from '../../../components/ui/EmptyState';
 import { ShoppingBag, Plus, Search, Calendar, Ban, DollarSign, TrendingDown, RefreshCw, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
+import { fmtMoney } from '../../../lib/utils';
 
 /* ── Skeleton ─────────────────────────────────────── */
 function SkeletonRow() {
@@ -91,7 +93,8 @@ export function PurchasesPage() {
   const [perPage, setPerPage] = useState(15);
   const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
 
-  // Void state
+  // View/void state
+  const [viewingPurchase, setViewingPurchase] = useState(null);
   const [voidTarget, setVoidTarget] = useState(null);
 
   const [purchasesData, setPurchasesData] = useState(null);
@@ -222,7 +225,7 @@ export function PurchasesPage() {
             <div>
               <p className="text-[10px] md:text-xs font-semibold text-slate-400">إجمالي المشتريات (الصفحة)</p>
               <p className="text-lg md:text-xl font-bold text-emerald-400 font-mono mt-0.5">
-                {purchasesData?.data?.reduce((sum, p) => sum + Number(p.grand_total), 0).toFixed(2) || '0.00'} ₪
+                {fmtMoney(purchasesData?.data?.reduce((sum, p) => sum + Number(p.grand_total), 0) || 0)}
               </p>
             </div>
             <div className="p-2.5 md:p-3 rounded-2xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
@@ -407,18 +410,18 @@ export function PurchasesPage() {
 
                         {/* Grand Total */}
                         <td className="py-3.5 px-4 font-mono font-bold text-slate-100 text-sm">
-                          {Number(purchase.grand_total).toFixed(2)} ₪
+                          {fmtMoney(purchase.grand_total)}
                         </td>
 
                         {/* Paid / Due — hidden on small */}
                         <td className="py-3.5 px-4 font-mono hidden sm:table-cell">
                           <div>
                             <span className="text-emerald-400 font-semibold">
-                              {Number(purchase.paid_amount).toFixed(2)} ₪
+                              {fmtMoney(purchase.paid_amount)}
                             </span>
                             {Number(purchase.due_amount) > 0 && (
                               <span className="text-[11px] text-amber-400 block font-bold">
-                                آجل: {Number(purchase.due_amount).toFixed(2)} ₪
+                                آجل: {fmtMoney(purchase.due_amount)}
                               </span>
                             )}
                           </div>
@@ -438,6 +441,15 @@ export function PurchasesPage() {
                         {/* Actions */}
                         <td className="py-3.5 px-4">
                           <div className="flex items-center justify-center gap-1.5">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              title="عرض تفاصيل الفاتورة"
+                              onClick={() => setViewingPurchase(purchase)}
+                              className="text-brand-400 hover:bg-brand-500/10 p-1.5"
+                            >
+                              <DollarSign className="w-4 h-4" />
+                            </Button>
                             {!isCancelled && (
                               <Button
                                 variant="ghost"
@@ -482,6 +494,15 @@ export function PurchasesPage() {
           products={productsData?.data || []}
           onSave={handleSavePurchase}
           isLoading={isSaving}
+        />
+      )}
+
+      {/* ── Purchase Details ──────────────────────── */}
+      {viewingPurchase && (
+        <PurchaseDetailsModal
+          isOpen={!!viewingPurchase}
+          onClose={() => setViewingPurchase(null)}
+          purchase={viewingPurchase}
         />
       )}
 
